@@ -1,0 +1,149 @@
+import { prisma } from "@/lib/db";
+import { ParsedPost } from "@/lib/facebook";
+import { NextResponse } from "next/server";
+import { execFile } from "child_process";
+import path from "path";
+
+function runScraper(args: string[]): Promise<ParsedPost[]> {
+  return new Promise((resolve, reject) => {
+    const scriptPath = path.join(
+      process.cwd(),
+      "scripts",
+      "scrape-facebook.ts"
+    );
+
+    execFile(
+      "npx",
+      ["tsx", scriptPath, ...args],
+      { maxBuffer: 10 * 1024 * 1024, timeout: 5 * 60 * 1000 },
+      (error, stdout, stderr) => {
+        if (stderr) {
+          console.log("[Scraper]", stderr);
+        }
+        if (error) {
+          reject(new Error(`Scraper failed: ${error.message}`));
+          return;
+        }
+        try {
+          const posts = JSON.parse(stdout);
+          resolve(
+            posts.map((p: ParsedPost & { createdTime: string }) => ({
+              ...p,
+              createdTime: new Date(p.createdTime),
+            }))
+          );
+        } catch (e) {
+          reject(
+            new Error(
+              `Failed to parse scraper output: ${e instanceof Error ? e.message : e}`
+            )
+          );
+        }
+      }
+    );
+  });
+}
+
+export async function POST(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const competition = await prisma.competition.findUnique({
+    where: { id },
+  });
+
+  if (!competition) {
+    return NextResponse.json(
+      { error: "Competition not found" },
+      { status: 404 }
+    );
+  }
+
+  // Allow overriding group URL and scroll count from the request body
+  let groupUrl = "https://www.facebook.com/groups/habuild";
+  let scrollCount = "15";
+  let cookiesPath = "";
+  try {
+    const body = await req.json();
+    if (body.groupUrl) groupUrl = body.groupUrl;
+    if (body.scrollCount) scrollCount = String(body.scrollCount);
+    if (body.cookiesPath) cookiesPath = body.cookiesPath;
+  } catch {
+    // No body or invalid JSON — use defaults
+  }
+
+  try {
+    const args = [
+      "--group",
+      groupUrl,
+      "--hashtag",
+      competition.hashtag,
+      "--startDate",
+      competition.startDate.toISOString().split("T")[0],
+      "--endDate",
+      competition.endDate.toISOString().split("T")[0],
+      "--scrolls",
+      scrollCount,
+    ];
+    if (cookiesPath) {
+      args.push("--cookies", cookiesPath);
+    }
+
+    const posts = await runScraper(args);
+
+    // Upsert posts (avoid duplicates by content hash since scraper IDs change)
+    let created = 0;
+    let updated = 0;
+    for (const post of posts) {
+      // Use a content-based key since fbPostId from scraper is synthetic
+      const contentKey = `${post.authorName}::${post.content.substring(0, 100)}`;
+      const existing = await prisma.post.findFirst({
+        where: {
+          competitionId: id,
+          authorName: post.authorName,
+          content: { startsWith: post.content.substring(0, 100) },
+        },
+      });
+
+      if (existing) {
+        await prisma.post.update({
+          where: { id: existing.id },
+          data: {
+            likesCount: post.likesCount,
+            commentsCount: post.commentsCount,
+            content: post.content,
+            imageUrl: post.imageUrl,
+          },
+        });
+        updated++;
+      } else {
+        await prisma.post.create({
+          data: {
+            fbPostId: contentKey,
+            authorName: post.authorName,
+            authorProfileUrl: post.authorProfileUrl,
+            content: post.content,
+            imageUrl: post.imageUrl,
+            likesCount: post.likesCount,
+            commentsCount: post.commentsCount,
+            createdTime: post.createdTime,
+            competitionId: id,
+          },
+        });
+        created++;
+      }
+    }
+
+    return NextResponse.json({
+      message: `Scraped ${posts.length} posts. Created: ${created}, Updated: ${updated}`,
+      total: posts.length,
+      created,
+      updated,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Unknown error scraping posts";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}

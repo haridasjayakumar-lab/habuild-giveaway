@@ -1,0 +1,67 @@
+generator client {
+  provider        = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         String   @default("judge") // "admin" or "judge"
+  createdAt    DateTime @default(now())
+}
+
+model Competition {
+  id        String   @id @default(cuid())
+  name      String
+  hashtag   String
+  startDate DateTime
+  endDate   DateTime
+  criteria  String   // JSON: [{name: string, maxScore: number}]
+  createdAt DateTime @default(now())
+  posts     Post[]
+  grades    Grade[]
+}
+
+model Post {
+  id               String      @id @default(cuid())
+  competitionId    String
+  fbPostId         String      @unique
+  authorName       String
+  authorProfileUrl String?
+  content          String
+  imageUrl         String?
+  likesCount       Int         @default(0)
+  commentsCount    Int         @default(0)
+  createdTime      DateTime
+  competition      Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  grades           Grade[]
+
+  @@index([competitionId])
+}
+
+model Judge {
+  id     String  @id @default(cuid())
+  name   String  @unique
+  grades Grade[]
+}
+
+model Grade {
+  id            String      @id @default(cuid())
+  postId        String
+  judgeId       String
+  competitionId String
+  scores        String      // JSON: {criterionName: score}
+  totalScore    Float
+  createdAt     DateTime    @default(now())
+  post          Post        @relation(fields: [postId], references: [id], onDelete: Cascade)
+  judge         Judge       @relation(fields: [judgeId], references: [id], onDelete: Cascade)
+  competition   Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, judgeId])
+  @@index([competitionId])
+}
