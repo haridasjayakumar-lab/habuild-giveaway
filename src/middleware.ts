@@ -1,28 +1,27 @@
-import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
-export default auth((req) => {
-  const { pathname } = req.nextUrl;
+const publicPaths = ["/login", "/register", "/api/auth"];
 
-  // Public routes — allow without auth
-  const publicPaths = ["/login", "/register", "/api/auth"];
-  if (publicPaths.some((p) => pathname.startsWith(p))) {
-    return NextResponse.next();
-  }
+export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
 
-  // If not authenticated, redirect to login
-  if (!req.auth) {
-    const loginUrl = new URL("/login", req.url);
-    loginUrl.searchParams.set("callbackUrl", pathname);
+  const isPublic = publicPaths.some((p) => pathname.startsWith(p));
+  if (isPublic) return NextResponse.next();
+
+  // next-auth v5 sets one of these cookie names depending on whether HTTPS is used
+  const sessionToken =
+    request.cookies.get("authjs.session-token") ||
+    request.cookies.get("__Secure-authjs.session-token");
+
+  if (!sessionToken) {
+    const loginUrl = new URL("/login", request.url);
     return NextResponse.redirect(loginUrl);
   }
 
   return NextResponse.next();
-});
+}
 
 export const config = {
-  matcher: [
-    // Protect everything except static assets and _next
-    "/((?!_next/static|_next/image|favicon.ico).*)",
-  ],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };
