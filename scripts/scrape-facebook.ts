@@ -140,7 +140,9 @@ export async function scrape(opts: ScrapeOptions): Promise<ScrapedPost[]> {
 
   const page = await context.newPage();
 
-  await page.goto(opts.groupUrl, { waitUntil: "domcontentloaded" });
+  // Search within the group for the specific hashtag
+  const searchUrl = `${opts.groupUrl}/search/?q=${encodeURIComponent(opts.hashtag)}`;
+  await page.goto(searchUrl, { waitUntil: "domcontentloaded" });
   await page.waitForTimeout(3000);
 
   try {
