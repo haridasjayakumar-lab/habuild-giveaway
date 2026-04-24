@@ -12,9 +12,10 @@ function runScraper(args: string[]): Promise<ParsedPost[]> {
       "scrape-facebook.ts"
     );
 
+    const tsxBin = path.join(process.cwd(), "node_modules", ".bin", "tsx");
     execFile(
-      "npx",
-      ["tsx", scriptPath, ...args],
+      tsxBin,
+      [scriptPath, ...args],
       { maxBuffer: 10 * 1024 * 1024, timeout: 5 * 60 * 1000 },
       (error, stdout, stderr) => {
         if (stderr) {
