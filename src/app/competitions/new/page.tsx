@@ -72,7 +72,7 @@ export default function NewCompetition() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">Create New Competition</h1>
+      <h1 className="text-2xl font-heading font-black text-slate-800 mb-6">Create New Competition</h1>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>
@@ -181,7 +181,7 @@ export default function NewCompetition() {
           </CardContent>
         </Card>
 
-        <Button type="submit" className="w-full" disabled={saving}>
+        <Button type="submit" className="w-full bg-gradient-to-r from-indigo-700 to-blue-700 text-white font-bold hover:opacity-90" disabled={saving}>
           {saving ? "Creating..." : "Create Competition"}
         </Button>
       </form>

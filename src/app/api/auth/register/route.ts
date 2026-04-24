@@ -39,13 +39,16 @@ export async function POST(req: Request) {
   }
 
   const passwordHash = await hash(password, 12);
+  const userCount = await prisma.user.count();
+  const adminEmails = (process.env.ADMIN_EMAILS || "").toLowerCase().split(",").map((e) => e.trim()).filter(Boolean);
+  const isAdmin = userCount === 0 || adminEmails.includes(email.toLowerCase());
 
   const user = await prisma.user.create({
     data: {
       name,
       email: email.toLowerCase(),
       passwordHash,
-      role: "judge",
+      role: isAdmin ? "admin" : "judge",
     },
   });
 

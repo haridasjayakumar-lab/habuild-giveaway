@@ -63,7 +63,6 @@ export default function GradePage({
       .then((r) => r.json())
       .then((data: Competition) => {
         setCompetition(data);
-        // Initialize scores for criteria
         const criteria: Criterion[] = JSON.parse(data.criteria);
         const initial: GradeScores = {};
         criteria.forEach((c) => (initial[c.name] = 0));
@@ -72,7 +71,6 @@ export default function GradePage({
       .finally(() => setLoading(false));
   };
 
-  // Auto-fill judge name from session
   useEffect(() => {
     if (session?.user?.name && !judgeName) {
       setJudgeName(session.user.name);
@@ -110,16 +108,13 @@ export default function GradePage({
       });
 
       if (res.ok) {
-        // Add judge name to list if new
         if (!judges.includes(judgeName.trim())) {
           setJudges([...judges, judgeName.trim()]);
         }
-        // Reload and move to next
         loadCompetition();
         if (currentPostIndex < competition.posts.length - 1) {
           setCurrentPostIndex(currentPostIndex + 1);
         }
-        // Reset scores
         const criteria: Criterion[] = JSON.parse(competition.criteria);
         const initial: GradeScores = {};
         criteria.forEach((c) => (initial[c.name] = 0));
@@ -133,12 +128,12 @@ export default function GradePage({
   };
 
   if (loading) {
-    return <p className="text-muted-foreground">Loading...</p>;
+    return <p className="text-muted-foreground font-bold">Loading...</p>;
   }
 
   if (!competition || competition.posts.length === 0) {
     return (
-      <p className="text-muted-foreground">
+      <p className="text-muted-foreground font-bold">
         No posts to grade. Fetch posts from the competition page first.
       </p>
     );
@@ -147,7 +142,6 @@ export default function GradePage({
   const criteria: Criterion[] = JSON.parse(competition.criteria);
   const currentPost = competition.posts[currentPostIndex];
 
-  // Check if current judge already graded this post
   const existingGrade = currentPost.grades.find(
     (g) => g.judge.name === judgeName.trim()
   );
@@ -156,13 +150,15 @@ export default function GradePage({
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold">Grade: {competition.name}</h1>
-          <p className="text-muted-foreground">
-            Post {currentPostIndex + 1} of {competition.posts.length}
+          <h1 className="text-3xl font-extrabold font-heading text-slate-800">
+            Grade: {competition.name}
+          </h1>
+          <p className="text-muted-foreground font-bold">
+            Post <span className="text-indigo-700">{currentPostIndex + 1}</span> of <span className="text-indigo-700">{competition.posts.length}</span>
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Label htmlFor="judgeName" className="whitespace-nowrap">
+          <Label htmlFor="judgeName" className="whitespace-nowrap font-bold">
             Judge Name:
           </Label>
           <Input
@@ -170,7 +166,7 @@ export default function GradePage({
             value={judgeName}
             onChange={(e) => setJudgeName(e.target.value)}
             placeholder="Enter your name"
-            className="w-48"
+            className="w-48 font-bold"
             list="judge-list"
           />
           <datalist id="judge-list">
@@ -181,6 +177,7 @@ export default function GradePage({
           <Button
             variant="outline"
             size="sm"
+            className="font-bold"
             onClick={() => setShowAll(!showAll)}
           >
             {showAll ? "Single View" : "Show All"}
@@ -191,7 +188,6 @@ export default function GradePage({
       <Separator className="mb-6" />
 
       {showAll ? (
-        // All posts view
         <div className="space-y-6">
           {competition.posts.map((post, idx) => (
             <PostGradeCard
@@ -206,32 +202,31 @@ export default function GradePage({
           ))}
         </div>
       ) : (
-        // Single post view
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Post content */}
-          <Card>
+          <Card className="border-l-4 border-l-indigo-400">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>{currentPost.authorName}</CardTitle>
+                <CardTitle className="font-extrabold">{currentPost.authorName}</CardTitle>
                 <div className="flex gap-2">
-                  <Badge variant="secondary">
+                  <Badge variant="secondary" className="bg-blue-100 text-blue-800 font-bold">
                     {currentPost.likesCount} likes
                   </Badge>
-                  <Badge variant="outline">
+                  <Badge variant="outline" className="border-blue-300 text-blue-600 font-bold">
                     {currentPost.commentsCount} comments
                   </Badge>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
-              <p className="whitespace-pre-wrap text-sm mb-4">
+              <p className="whitespace-pre-wrap text-sm mb-4 font-medium">
                 {currentPost.content}
               </p>
               {currentPost.imageUrl && (
                 <img
                   src={currentPost.imageUrl}
                   alt="Post image"
-                  className="rounded-md max-h-96 object-cover w-full"
+                  className="rounded-lg max-h-96 object-cover w-full shadow-sm"
                 />
               )}
             </CardContent>
@@ -239,13 +234,13 @@ export default function GradePage({
 
           {/* Grading panel */}
           <div className="space-y-4">
-            <Card>
+            <Card className="border-t-4 border-t-indigo-500">
               <CardHeader>
-                <CardTitle className="text-base">Your Grade</CardTitle>
+                <CardTitle className="text-base font-extrabold text-indigo-800">Your Grade</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {existingGrade && (
-                  <div className="p-2 rounded bg-muted text-sm">
+                  <div className="p-2 rounded-lg bg-gradient-to-r from-indigo-50 to-blue-50 text-sm font-bold text-indigo-800 border border-indigo-200">
                     You already graded this post (total:{" "}
                     {existingGrade.totalScore}). Submitting will update your
                     score.
@@ -254,8 +249,8 @@ export default function GradePage({
                 {criteria.map((c) => (
                   <div key={c.name}>
                     <div className="flex items-center justify-between mb-1">
-                      <Label>{c.name}</Label>
-                      <span className="text-sm font-mono">
+                      <Label className="font-bold">{c.name}</Label>
+                      <span className="text-sm font-mono font-bold text-indigo-700">
                         {scores[c.name] || 0} / {c.maxScore}
                       </span>
                     </div>
@@ -267,10 +262,10 @@ export default function GradePage({
                             onClick={() =>
                               setScores({ ...scores, [c.name]: val })
                             }
-                            className={`w-8 h-8 rounded text-sm font-medium transition-colors ${
+                            className={`w-8 h-8 rounded-lg text-sm font-bold transition-all ${
                               val <= (scores[c.name] || 0)
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-muted hover:bg-muted/80"
+                                ? "bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-sm scale-105"
+                                : "bg-gray-100 hover:bg-gray-200 text-gray-600"
                             }`}
                           >
                             {val}
@@ -281,16 +276,16 @@ export default function GradePage({
                   </div>
                 ))}
                 <Separator />
-                <div className="flex items-center justify-between font-semibold">
+                <div className="flex items-center justify-between font-extrabold text-lg">
                   <span>Total</span>
-                  <span>
+                  <span className="text-indigo-700">
                     {Object.values(scores).reduce((a, b) => a + b, 0)} /{" "}
                     {criteria.reduce((a, c) => a + c.maxScore, 0)}
                   </span>
                 </div>
                 <Button
                   onClick={handleSubmitGrade}
-                  className="w-full"
+                  className="w-full bg-gradient-to-r from-indigo-700 to-blue-700 text-white font-bold hover:opacity-90 shadow-md"
                   disabled={submitting || !judgeName.trim()}
                 >
                   {submitting ? "Submitting..." : "Submit Grade"}
@@ -300,9 +295,9 @@ export default function GradePage({
 
             {/* Other judges' grades */}
             {currentPost.grades.length > 0 && (
-              <Card>
+              <Card className="border-t-4 border-t-teal-500">
                 <CardHeader>
-                  <CardTitle className="text-base">
+                  <CardTitle className="text-base font-extrabold text-teal-700">
                     Other Judges&apos; Grades
                   </CardTitle>
                 </CardHeader>
@@ -317,16 +312,16 @@ export default function GradePage({
                           key={grade.id}
                           className="flex items-center justify-between text-sm"
                         >
-                          <span className="font-medium">
+                          <span className="font-bold">
                             {grade.judge.name}
                           </span>
                           <div className="flex gap-2">
                             {criteria.map((c) => (
-                              <span key={c.name} className="text-muted-foreground">
+                              <span key={c.name} className="text-muted-foreground font-bold">
                                 {c.name}: {gradeScores[c.name] || 0}
                               </span>
                             ))}
-                            <Badge variant="secondary">
+                            <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 font-bold">
                               Total: {grade.totalScore}
                             </Badge>
                           </div>
@@ -342,6 +337,7 @@ export default function GradePage({
             <div className="flex gap-2 justify-between">
               <Button
                 variant="outline"
+                className="font-bold"
                 onClick={() =>
                   setCurrentPostIndex(Math.max(0, currentPostIndex - 1))
                 }
@@ -351,6 +347,7 @@ export default function GradePage({
               </Button>
               <Button
                 variant="outline"
+                className="font-bold"
                 onClick={() =>
                   setCurrentPostIndex(
                     Math.min(
@@ -389,7 +386,6 @@ function PostGradeCard({
 }) {
   const [scores, setScores] = useState<GradeScores>(() => {
     const initial: GradeScores = {};
-    // Pre-fill with existing grade if available
     const existing = post.grades.find(
       (g) => g.judge.name === judgeName.trim()
     );
@@ -423,16 +419,18 @@ function PostGradeCard({
   };
 
   return (
-    <Card className={submitted ? "border-green-300" : ""}>
+    <Card className={`border-l-4 ${submitted ? "border-l-green-500 bg-green-50/30" : "border-l-indigo-400"}`}>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base">
-            #{index + 1} &mdash; {post.authorName}
+          <CardTitle className="text-base font-extrabold">
+            <span className="text-indigo-700">#{index + 1}</span> &mdash; {post.authorName}
           </CardTitle>
           <div className="flex gap-2">
-            <Badge variant="secondary">{post.likesCount} likes</Badge>
+            <Badge variant="secondary" className="bg-blue-100 text-blue-800 font-bold">
+              {post.likesCount} likes
+            </Badge>
             {post.grades.length > 0 && (
-              <Badge>
+              <Badge className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold">
                 {post.grades.length} grade{post.grades.length > 1 ? "s" : ""}
               </Badge>
             )}
@@ -440,7 +438,7 @@ function PostGradeCard({
         </div>
       </CardHeader>
       <CardContent>
-        <p className="text-sm whitespace-pre-wrap mb-3">
+        <p className="text-sm whitespace-pre-wrap mb-3 font-medium">
           {post.content.substring(0, 300)}
           {post.content.length > 300 ? "..." : ""}
         </p>
@@ -448,14 +446,14 @@ function PostGradeCard({
           <img
             src={post.imageUrl}
             alt="Post image"
-            className="rounded-md max-h-48 object-cover mb-3"
+            className="rounded-lg max-h-48 object-cover mb-3 shadow-sm"
           />
         )}
         <Separator className="my-3" />
         <div className="flex flex-wrap gap-4">
           {criteria.map((c) => (
             <div key={c.name} className="space-y-1">
-              <Label className="text-xs">{c.name}</Label>
+              <Label className="text-xs font-bold">{c.name}</Label>
               <div className="flex gap-1">
                 {Array.from({ length: c.maxScore }, (_, i) => i + 1).map(
                   (val) => (
@@ -464,10 +462,10 @@ function PostGradeCard({
                       onClick={() =>
                         setScores({ ...scores, [c.name]: val })
                       }
-                      className={`w-7 h-7 rounded text-xs font-medium transition-colors ${
+                      className={`w-7 h-7 rounded-lg text-xs font-bold transition-all ${
                         val <= (scores[c.name] || 0)
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted hover:bg-muted/80"
+                          ? "bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-sm"
+                          : "bg-gray-100 hover:bg-gray-200 text-gray-600"
                       }`}
                     >
                       {val}
@@ -482,17 +480,17 @@ function PostGradeCard({
               size="sm"
               onClick={handleSubmit}
               disabled={submitting || !judgeName.trim()}
+              className={`font-bold ${submitted ? "bg-green-600 hover:bg-green-700" : "bg-gradient-to-r from-indigo-700 to-blue-700 hover:opacity-90"}`}
             >
-              {submitted ? "Updated" : submitting ? "..." : "Grade"}
+              {submitted ? "Updated!" : submitting ? "..." : "Grade"}
             </Button>
           </div>
         </div>
-        {/* Show other judges' grades */}
         {post.grades.length > 0 && (
-          <div className="mt-3 text-xs text-muted-foreground">
+          <div className="mt-3 text-xs font-bold text-muted-foreground">
             {post.grades.map((g) => (
               <span key={g.id} className="mr-3">
-                {g.judge.name}: {g.totalScore}
+                {g.judge.name}: <span className="text-indigo-700">{g.totalScore}</span>
               </span>
             ))}
           </div>

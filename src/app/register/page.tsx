@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -14,73 +13,47 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { registerAction } from "./actions";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
-    if (!email.toLowerCase().endsWith("@habuild.in")) {
-      setError("Only @habuild.in email addresses are allowed");
-      setLoading(false);
-      return;
-    }
-
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters");
-      setLoading(false);
-      return;
-    }
+    const formData = new FormData(e.currentTarget);
 
     try {
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error);
-        setLoading(false);
-        return;
-      }
-
-      // Auto sign in after registration
-      const result = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
-      });
-
+      const result = await registerAction(formData);
       if (result?.error) {
         setError(result.error);
         setLoading(false);
-      } else {
-        router.push("/");
-        router.refresh();
+        if (result.redirect) {
+          router.push(result.redirect);
+        }
       }
+      // If no error, the server action redirects to "/" automatically
     } catch {
-      setError("Something went wrong. Please try again.");
-      setLoading(false);
+      // NEXT_REDIRECT throws — this is expected on success
     }
   };
 
   return (
-    <div className="min-h-[70vh] flex items-center justify-center">
-      <Card className="w-full max-w-md">
+    <div className="min-h-[70vh] flex items-center justify-center relative">
+      {/* Soothing background circles */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-10 right-10 w-64 h-64 bg-blue-100/50 rounded-full blur-3xl" />
+        <div className="absolute bottom-10 left-10 w-48 h-48 bg-indigo-100/50 rounded-full blur-3xl" />
+        <div className="absolute top-1/3 left-1/3 w-56 h-56 bg-teal-50/50 rounded-full blur-3xl" />
+      </div>
+      <Card className="relative w-full max-w-md shadow-lg border-t-4 border-t-indigo-500">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Create Account</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-2xl font-heading font-black text-slate-800">Create Account</CardTitle>
+          <CardDescription className="font-bold">
             Register with your <strong>@habuild.in</strong> email to start
             grading
           </CardDescription>
@@ -88,51 +61,48 @@ export default function RegisterPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm">
+              <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm font-bold">
                 {error}
               </div>
             )}
             <div>
-              <Label htmlFor="name">Full Name</Label>
+              <Label htmlFor="name" className="font-bold">Full Name</Label>
               <Input
                 id="name"
+                name="name"
                 type="text"
                 placeholder="Your name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
                 required
               />
             </div>
             <div>
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="font-bold">Email</Label>
               <Input
                 id="email"
+                name="email"
                 type="email"
                 placeholder="you@habuild.in"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
             <div>
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="font-bold">Password</Label>
               <Input
                 id="password"
+                name="password"
                 type="password"
                 placeholder="Minimum 6 characters"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={6}
               />
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="w-full bg-gradient-to-r from-indigo-700 to-blue-700 text-white font-bold hover:opacity-90" disabled={loading}>
               {loading ? "Creating account..." : "Register"}
             </Button>
           </form>
-          <p className="text-center text-sm text-muted-foreground mt-4">
+          <p className="text-center text-sm text-muted-foreground mt-4 font-bold">
             Already have an account?{" "}
-            <Link href="/login" className="underline font-medium">
+            <Link href="/login" className="underline font-bold text-indigo-700">
               Sign In
             </Link>
           </p>

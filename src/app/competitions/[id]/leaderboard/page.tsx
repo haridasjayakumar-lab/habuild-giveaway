@@ -87,49 +87,53 @@ export default function LeaderboardPage({
   };
 
   if (loading) {
-    return <p className="text-muted-foreground">Loading leaderboard...</p>;
+    return <p className="text-muted-foreground font-bold">Loading leaderboard...</p>;
   }
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Top 10 Leaderboard</h1>
+        <h1 className="text-3xl font-extrabold font-heading text-slate-800">
+          Top 10 Leaderboard
+        </h1>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={exportCSV}>
+          <Button variant="outline" onClick={exportCSV} className="font-bold border-teal-300 text-teal-700 hover:bg-teal-50">
             Export CSV
           </Button>
           <Link href={`/competitions/${id}`}>
-            <Button variant="outline">Back to Posts</Button>
+            <Button variant="outline" className="font-bold">Back to Posts</Button>
           </Link>
           <Link href={`/competitions/${id}/grade`}>
-            <Button variant="outline">Grade Posts</Button>
+            <Button variant="outline" className="font-bold border-blue-300 text-blue-700 hover:bg-blue-50">
+              Grade Posts
+            </Button>
           </Link>
         </div>
       </div>
 
       {leaderboard.length === 0 ? (
-        <p className="text-muted-foreground">
+        <p className="text-muted-foreground font-bold">
           No graded posts yet. Grade some posts first.
         </p>
       ) : (
         <>
-          <Card className="mb-6">
+          <Card className="mb-6 overflow-hidden shadow-lg">
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-16">Rank</TableHead>
-                    <TableHead>Author</TableHead>
-                    <TableHead className="text-center">Likes</TableHead>
+                  <TableRow className="bg-gradient-to-r from-slate-100 to-indigo-100">
+                    <TableHead className="w-16 font-extrabold text-slate-800">Rank</TableHead>
+                    <TableHead className="font-extrabold text-slate-800">Author</TableHead>
+                    <TableHead className="text-center font-extrabold text-slate-700">Likes</TableHead>
                     {criteria.map((c) => (
-                      <TableHead key={c.name} className="text-center">
+                      <TableHead key={c.name} className="text-center font-extrabold text-slate-800">
                         {c.name}
                       </TableHead>
                     ))}
-                    <TableHead className="text-center">
+                    <TableHead className="text-center font-extrabold text-indigo-800">
                       Total Score
                     </TableHead>
-                    <TableHead className="text-center">
+                    <TableHead className="text-center font-extrabold text-teal-700">
                       Judges
                     </TableHead>
                   </TableRow>
@@ -138,34 +142,42 @@ export default function LeaderboardPage({
                   {leaderboard.map((entry, i) => (
                     <TableRow
                       key={entry.postId}
-                      className={i < 3 ? "font-semibold" : ""}
+                      className={
+                        i === 0
+                          ? "bg-yellow-50/80 font-bold"
+                          : i === 1
+                          ? "bg-gray-50/80 font-bold"
+                          : i === 2
+                          ? "bg-orange-50/80 font-bold"
+                          : "font-medium"
+                      }
                     >
                       <TableCell>
                         {i === 0 ? (
-                          <span className="text-lg">1st</span>
+                          <span className="text-lg font-extrabold text-yellow-600">1st</span>
                         ) : i === 1 ? (
-                          <span className="text-lg">2nd</span>
+                          <span className="text-lg font-extrabold text-gray-500">2nd</span>
                         ) : i === 2 ? (
-                          <span className="text-lg">3rd</span>
+                          <span className="text-lg font-extrabold text-orange-700">3rd</span>
                         ) : (
-                          `#${i + 1}`
+                          <span className="font-bold">#{i + 1}</span>
                         )}
                       </TableCell>
-                      <TableCell>{entry.authorName}</TableCell>
+                      <TableCell className="font-bold">{entry.authorName}</TableCell>
                       <TableCell className="text-center">
-                        {entry.likesCount}
+                        <span className="font-bold text-slate-700">{entry.likesCount}</span>
                       </TableCell>
                       {criteria.map((c) => (
-                        <TableCell key={c.name} className="text-center">
+                        <TableCell key={c.name} className="text-center font-bold">
                           {entry.avgScores[c.name] || 0}
                         </TableCell>
                       ))}
                       <TableCell className="text-center">
-                        <Badge variant="default">
+                        <Badge className="bg-gradient-to-r from-indigo-700 to-blue-600 text-white font-bold">
                           {entry.totalAvgScore}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="text-center font-bold text-teal-700">
                         {entry.gradeCount}
                       </TableCell>
                     </TableRow>
@@ -176,41 +188,49 @@ export default function LeaderboardPage({
           </Card>
 
           {/* Expanded cards for top 3 */}
-          <h2 className="text-lg font-semibold mb-4">Top 3 Details</h2>
+          <h2 className="text-xl font-extrabold mb-4 font-heading text-slate-800">
+            Top 3 Details
+          </h2>
           <div className="grid gap-4 md:grid-cols-3">
             {leaderboard.slice(0, 3).map((entry, i) => (
               <Card
                 key={entry.postId}
-                className={
+                className={`shadow-lg ${
                   i === 0
-                    ? "border-2 border-yellow-400"
+                    ? "border-2 border-yellow-400 bg-gradient-to-b from-yellow-50 to-white"
                     : i === 1
-                    ? "border-2 border-gray-400"
-                    : "border-2 border-amber-700"
-                }
+                    ? "border-2 border-slate-400 bg-gradient-to-b from-slate-50 to-white"
+                    : "border-2 border-indigo-400 bg-gradient-to-b from-indigo-50 to-white"
+                }`}
               >
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-base">
-                      {i === 0 ? "1st" : i === 1 ? "2nd" : "3rd"} &mdash;{" "}
-                      {entry.authorName}
+                    <CardTitle className="text-base font-extrabold">
+                      <span className={
+                        i === 0 ? "text-yellow-600" : i === 1 ? "text-slate-500" : "text-indigo-600"
+                      }>
+                        {i === 0 ? "1st" : i === 1 ? "2nd" : "3rd"}
+                      </span>{" "}
+                      &mdash; {entry.authorName}
                     </CardTitle>
-                    <Badge>{entry.totalAvgScore} pts</Badge>
+                    <Badge className="bg-gradient-to-r from-indigo-700 to-blue-600 text-white font-bold">
+                      {entry.totalAvgScore} pts
+                    </Badge>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm whitespace-pre-wrap mb-3">
+                  <p className="text-sm whitespace-pre-wrap mb-3 font-medium">
                     {entry.content}
                   </p>
                   {entry.imageUrl && (
                     <img
                       src={entry.imageUrl}
                       alt="Post image"
-                      className="rounded-md max-h-48 object-cover w-full mb-3"
+                      className="rounded-lg max-h-48 object-cover w-full mb-3 shadow-sm"
                     />
                   )}
-                  <div className="text-xs text-muted-foreground">
-                    {entry.likesCount} likes &middot; Graded by:{" "}
+                  <div className="text-xs font-bold text-muted-foreground">
+                    <span className="text-slate-700">{entry.likesCount} likes</span> &middot; Graded by:{" "}
                     {entry.judges.join(", ")}
                   </div>
                 </CardContent>
