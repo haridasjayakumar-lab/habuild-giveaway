@@ -1,8 +1,8 @@
 {
   "functions": {
     "src/app/api/competitions/[id]/fetch-posts/route.ts": {
-      "memory": 3008,
-      "maxDuration": 300
+      "memory": 1024,
+      "maxDuration": 60
     }
   }
 }
