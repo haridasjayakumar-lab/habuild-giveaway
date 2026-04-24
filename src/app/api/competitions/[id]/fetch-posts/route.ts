@@ -1,49 +1,7 @@
 import { prisma } from "@/lib/db";
 import { ParsedPost } from "@/lib/facebook";
 import { NextResponse } from "next/server";
-import { execFile } from "child_process";
-import path from "path";
-
-function runScraper(args: string[]): Promise<ParsedPost[]> {
-  return new Promise((resolve, reject) => {
-    const scriptPath = path.join(
-      process.cwd(),
-      "scripts",
-      "scrape-facebook.ts"
-    );
-
-    const tsxBin = path.join(process.cwd(), "node_modules", ".bin", "tsx");
-    execFile(
-      tsxBin,
-      [scriptPath, ...args],
-      { maxBuffer: 10 * 1024 * 1024, timeout: 5 * 60 * 1000 },
-      (error, stdout, stderr) => {
-        if (stderr) {
-          console.log("[Scraper]", stderr);
-        }
-        if (error) {
-          reject(new Error(`Scraper failed: ${error.message}`));
-          return;
-        }
-        try {
-          const posts = JSON.parse(stdout);
-          resolve(
-            posts.map((p: ParsedPost & { createdTime: string }) => ({
-              ...p,
-              createdTime: new Date(p.createdTime),
-            }))
-          );
-        } catch (e) {
-          reject(
-            new Error(
-              `Failed to parse scraper output: ${e instanceof Error ? e.message : e}`
-            )
-          );
-        }
-      }
-    );
-  });
-}
+import { scrape } from "@/../scripts/scrape-facebook";
 
 export async function POST(
   req: Request,
@@ -61,44 +19,36 @@ export async function POST(
     );
   }
 
-  // Allow overriding group URL and scroll count from the request body
   let groupUrl = "https://www.facebook.com/groups/habuild";
-  let scrollCount = "15";
+  let scrollCount = 15;
   let cookiesPath = "";
   try {
     const body = await req.json();
     if (body.groupUrl) groupUrl = body.groupUrl;
-    if (body.scrollCount) scrollCount = String(body.scrollCount);
+    if (body.scrollCount) scrollCount = Number(body.scrollCount);
     if (body.cookiesPath) cookiesPath = body.cookiesPath;
   } catch {
     // No body or invalid JSON — use defaults
   }
 
   try {
-    const args = [
-      "--group",
+    const scrapedPosts = await scrape({
       groupUrl,
-      "--hashtag",
-      competition.hashtag,
-      "--startDate",
-      competition.startDate.toISOString().split("T")[0],
-      "--endDate",
-      competition.endDate.toISOString().split("T")[0],
-      "--scrolls",
+      hashtag: competition.hashtag,
+      startDate: competition.startDate,
+      endDate: competition.endDate,
       scrollCount,
-    ];
-    if (cookiesPath) {
-      args.push("--cookies", cookiesPath);
-    }
+      cookiesPath: cookiesPath || undefined,
+    });
 
-    const posts = await runScraper(args);
+    const posts: ParsedPost[] = scrapedPosts.map((p) => ({
+      ...p,
+      createdTime: new Date(p.createdTime),
+    }));
 
-    // Upsert posts (avoid duplicates by content hash since scraper IDs change)
     let created = 0;
     let updated = 0;
     for (const post of posts) {
-      // Use a content-based key since fbPostId from scraper is synthetic
-      const contentKey = `${post.authorName}::${post.content.substring(0, 100)}`;
       const existing = await prisma.post.findFirst({
         where: {
           competitionId: id,
@@ -106,6 +56,8 @@ export async function POST(
           content: { startsWith: post.content.substring(0, 100) },
         },
       });
+
+      const contentKey = `${post.authorName}::${post.content.substring(0, 100)}`;
 
       if (existing) {
         await prisma.post.update({
