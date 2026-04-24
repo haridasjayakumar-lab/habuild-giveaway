@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/db";
 import { ParsedPost } from "@/lib/facebook";
 import { NextResponse } from "next/server";
-import { scrape } from "@/../scripts/scrape-facebook";
+
+export const runtime = "nodejs";
 
 export async function POST(
   req: Request,
@@ -32,6 +33,7 @@ export async function POST(
   }
 
   try {
+    const { scrape } = await import("@/../scripts/scrape-facebook");
     const scrapedPosts = await scrape({
       groupUrl,
       hashtag: competition.hashtag,
