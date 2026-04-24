@@ -98,20 +98,23 @@ export async function scrape(opts: ScrapeOptions): Promise<ScrapedPost[]> {
 
   const isVercel = !!process.env.VERCEL;
   let executablePath: string | undefined;
-  let extraArgs: string[] = [];
   if (isVercel) {
     const chromiumMin = await import("@sparticuz/chromium-min");
-    chromiumMin.default.setHeadlessMode = true;
-    chromiumMin.default.setGraphicsMode = false;
     executablePath = await chromiumMin.default.executablePath(
       "https://github.com/Sparticuz/chromium/releases/download/v147.0.2/chromium-v147.0.2-pack.x64.tar"
     );
-    extraArgs = chromiumMin.default.args;
   }
   const browser = await chromium.launch({
     headless: true,
     executablePath,
-    args: extraArgs,
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage",
+      "--disable-gpu",
+      "--no-zygote",
+      "--single-process",
+    ],
   });
   const context = await browser.newContext({
     userAgent:
