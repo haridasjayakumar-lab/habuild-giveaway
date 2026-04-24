@@ -101,7 +101,7 @@ export async function scrape(opts: ScrapeOptions): Promise<ScrapedPost[]> {
   if (isVercel) {
     const chromiumMin = await import("@sparticuz/chromium-min");
     executablePath = await chromiumMin.default.executablePath(
-      "https://github.com/Sparticuz/chromium/releases/download/v147.0.0/chromium-v147.0.0-pack.tar"
+      "https://github.com/Sparticuz/chromium/releases/download/v147.0.2/chromium-v147.0.2-pack.x64.tar"
     );
   }
   const browser = await chromium.launch({
