@@ -13,7 +13,7 @@
  * Outputs JSON to stdout when run as CLI.
  */
 
-import { chromium, type Page } from "playwright";
+import { chromium, type Page } from "playwright-core";
 
 export interface ScrapedPost {
   fbPostId: string;
@@ -96,7 +96,18 @@ export async function scrape(opts: ScrapeOptions): Promise<ScrapedPost[]> {
     `Scraping ${opts.groupUrl} for ${opts.hashtag} (${opts.startDate.toISOString().split("T")[0]} to ${opts.endDate.toISOString().split("T")[0]})\n`
   );
 
-  const browser = await chromium.launch({ headless: true });
+  const isVercel = !!process.env.VERCEL;
+  let executablePath: string | undefined;
+  if (isVercel) {
+    const chromiumMin = await import("@sparticuz/chromium-min");
+    executablePath = await chromiumMin.default.executablePath(
+      "https://github.com/Sparticuz/chromium/releases/download/v147.0.0/chromium-v147.0.0-pack.tar"
+    );
+  }
+  const browser = await chromium.launch({
+    headless: true,
+    executablePath,
+  });
   const context = await browser.newContext({
     userAgent:
       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
