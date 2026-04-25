@@ -12,12 +12,6 @@ export async function POST(
     return NextResponse.json({ error: "Competition not found" }, { status: 404 });
   }
 
-  // Require secret when called from automation
-  const secret = req.headers.get("x-upload-secret");
-  const expectedSecret = process.env.UPLOAD_SECRET;
-  if (expectedSecret && secret !== expectedSecret) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
 
   let posts: {
     authorName: string;
