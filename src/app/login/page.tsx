@@ -1,8 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,16 +30,13 @@ export default function LoginPage() {
         setError(result.error);
         setLoading(false);
       }
-      // If no error, the server action redirects to "/" automatically
     } catch {
-      // NEXT_REDIRECT throws — this is expected on success
-      // The page will redirect automatically
+      // NEXT_REDIRECT throws on success — page will redirect automatically
     }
   };
 
   return (
     <div className="min-h-[70vh] flex items-center justify-center relative">
-      {/* Soothing background circles */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-10 left-10 w-64 h-64 bg-indigo-100/50 rounded-full blur-3xl" />
         <div className="absolute bottom-10 right-10 w-48 h-48 bg-blue-100/50 rounded-full blur-3xl" />
@@ -51,7 +46,7 @@ export default function LoginPage() {
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-heading font-black text-slate-800">Habuild Giveaway Grader</CardTitle>
           <CardDescription className="font-bold">
-            Sign in with your <strong>@habuild.in</strong> email
+            Enter your team password to sign in
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -62,35 +57,20 @@ export default function LoginPage() {
               </div>
             )}
             <div>
-              <Label htmlFor="email" className="font-bold">Email</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="you@habuild.in"
-                required
-              />
-            </div>
-            <div>
               <Label htmlFor="password" className="font-bold">Password</Label>
               <Input
                 id="password"
                 name="password"
                 type="password"
-                placeholder="Enter your password"
+                placeholder="Enter team password"
                 required
+                autoFocus
               />
             </div>
             <Button type="submit" className="w-full bg-gradient-to-r from-indigo-700 to-blue-700 text-white font-bold hover:opacity-90" disabled={loading}>
               {loading ? "Signing in..." : "Sign In"}
             </Button>
           </form>
-          <p className="text-center text-sm text-muted-foreground mt-4 font-bold">
-            Don&apos;t have an account?{" "}
-            <Link href="/register" className="underline font-bold text-indigo-700">
-              Register
-            </Link>
-          </p>
         </CardContent>
       </Card>
     </div>
