@@ -25,6 +25,7 @@ export default function NewCompetition() {
     { name: "Effort", maxScore: 10 },
     { name: "Relevance", maxScore: 10 },
   ]);
+  const [useTimeWindow, setUseTimeWindow] = useState(false);
   const [postingWindowStart, setPostingWindowStart] = useState("");
   const [postingWindowEnd, setPostingWindowEnd] = useState("");
   const [saving, setSaving] = useState(false);
@@ -110,34 +111,46 @@ export default function NewCompetition() {
                 Only posts containing this hashtag will be fetched. Leave blank if using posting window instead.
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="postingWindowStart">Posting Window Start (IST)</Label>
-                <Input
-                  id="postingWindowStart"
-                  type="time"
-                  value={postingWindowStart}
-                  onChange={(e) => setPostingWindowStart(e.target.value)}
-                />
-                {postingWindowStart && (
-                  <button type="button" onClick={() => setPostingWindowStart("")} className="text-xs text-red-500 hover:underline mt-1">Clear</button>
-                )}
-              </div>
-              <div>
-                <Label htmlFor="postingWindowEnd">Posting Window End (IST)</Label>
-                <Input
-                  id="postingWindowEnd"
-                  type="time"
-                  value={postingWindowEnd}
-                  onChange={(e) => setPostingWindowEnd(e.target.value)}
-                />
-                {postingWindowEnd && (
-                  <button type="button" onClick={() => setPostingWindowEnd("")} className="text-xs text-red-500 hover:underline mt-1">Clear</button>
-                )}
-              </div>
+            <div className="flex items-center gap-2">
+              <input
+                id="useTimeWindow"
+                type="checkbox"
+                checked={useTimeWindow}
+                onChange={(e) => {
+                  setUseTimeWindow(e.target.checked);
+                  if (!e.target.checked) {
+                    setPostingWindowStart("");
+                    setPostingWindowEnd("");
+                  }
+                }}
+                className="w-4 h-4 accent-indigo-600"
+              />
+              <Label htmlFor="useTimeWindow" className="cursor-pointer">Filter by posting time window (IST)</Label>
             </div>
+            {useTimeWindow && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="postingWindowStart">Start Time</Label>
+                  <Input
+                    id="postingWindowStart"
+                    type="time"
+                    value={postingWindowStart}
+                    onChange={(e) => setPostingWindowStart(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="postingWindowEnd">End Time</Label>
+                  <Input
+                    id="postingWindowEnd"
+                    type="time"
+                    value={postingWindowEnd}
+                    onChange={(e) => setPostingWindowEnd(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
             <p className="text-xs text-muted-foreground -mt-2">
-              Optional: only fetch posts made between these times each day (e.g. 3:00 PM – 7:00 PM IST). Use this instead of a hashtag.
+              Optional: only fetch posts made between these times each day (e.g. 3:00 PM – 7:00 PM IST).
             </p>
             <div className="grid grid-cols-2 gap-4">
               <div>

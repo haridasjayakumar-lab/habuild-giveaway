@@ -63,6 +63,7 @@ export default function CompetitionDetail({
   // Edit competition settings state
   const [showEditSettings, setShowEditSettings] = useState(false);
   const [editHashtag, setEditHashtag] = useState("");
+  const [editUseTimeWindow, setEditUseTimeWindow] = useState(false);
   const [editWindowStart, setEditWindowStart] = useState("");
   const [editWindowEnd, setEditWindowEnd] = useState("");
   const [editStartDate, setEditStartDate] = useState("");
@@ -77,6 +78,7 @@ export default function CompetitionDetail({
       .then((data: Competition) => {
         setCompetition(data);
         setEditHashtag(data.hashtag || "");
+        setEditUseTimeWindow(!!(data.postingWindowStart && data.postingWindowEnd));
         setEditWindowStart(data.postingWindowStart || "");
         setEditWindowEnd(data.postingWindowEnd || "");
         setEditStartDate(data.startDate ? data.startDate.split("T")[0] : "");
@@ -249,20 +251,34 @@ export default function CompetitionDetail({
                 <p className="text-xs text-muted-foreground mt-1">Leave blank to use time window instead</p>
               </div>
               <div></div>
-              <div>
-                <Label className="font-bold">Posting Window Start (IST)</Label>
-                <Input type="time" value={editWindowStart} onChange={(e) => setEditWindowStart(e.target.value)} />
-                {editWindowStart && (
-                  <button type="button" onClick={() => setEditWindowStart("")} className="text-xs text-red-500 hover:underline mt-1">Clear</button>
-                )}
+              <div className="col-span-2 flex items-center gap-2">
+                <input
+                  id="editUseTimeWindow"
+                  type="checkbox"
+                  checked={editUseTimeWindow}
+                  onChange={(e) => {
+                    setEditUseTimeWindow(e.target.checked);
+                    if (!e.target.checked) {
+                      setEditWindowStart("");
+                      setEditWindowEnd("");
+                    }
+                  }}
+                  className="w-4 h-4 accent-indigo-600"
+                />
+                <Label htmlFor="editUseTimeWindow" className="font-bold cursor-pointer">Filter by posting time window (IST)</Label>
               </div>
-              <div>
-                <Label className="font-bold">Posting Window End (IST)</Label>
-                <Input type="time" value={editWindowEnd} onChange={(e) => setEditWindowEnd(e.target.value)} />
-                {editWindowEnd && (
-                  <button type="button" onClick={() => setEditWindowEnd("")} className="text-xs text-red-500 hover:underline mt-1">Clear</button>
-                )}
-              </div>
+              {editUseTimeWindow && (
+                <>
+                  <div>
+                    <Label className="font-bold">Start Time</Label>
+                    <Input type="time" value={editWindowStart} onChange={(e) => setEditWindowStart(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label className="font-bold">End Time</Label>
+                    <Input type="time" value={editWindowEnd} onChange={(e) => setEditWindowEnd(e.target.value)} />
+                  </div>
+                </>
+              )}
               <div>
                 <Label className="font-bold">Start Date</Label>
                 <Input type="date" value={editStartDate} onChange={(e) => setEditStartDate(e.target.value)} />
