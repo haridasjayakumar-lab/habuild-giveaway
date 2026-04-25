@@ -414,6 +414,7 @@ function PostRow({
   const [remarks, setRemarks] = useState(post.remarks || "");
   const [authorName, setAuthorName] = useState(post.authorName || "");
   const [likesCount, setLikesCount] = useState(post.likesCount);
+  const [editingLikes, setEditingLikes] = useState(false);
   const [showGrade, setShowGrade] = useState(false);
   const [scores, setScores] = useState<GradeScores>(() => {
     const initial: GradeScores = {};
@@ -534,15 +535,29 @@ function PostRow({
           )}
         </td>
         <td className="px-3 py-2">
-          <input
-            type="number"
-            min={0}
-            value={likesCount}
-            onChange={(e) => setLikesCount(parseInt(e.target.value) || 0)}
-            onBlur={() => onLikesCount(post.id, likesCount)}
-            className="font-extrabold text-blue-700 w-16 bg-transparent border-0 border-b border-transparent focus:border-indigo-400 focus:outline-none focus:bg-indigo-50 rounded px-1 py-0.5 text-sm transition-colors"
-          />
-          <span className="text-xs text-slate-400">likes</span>
+          {editingLikes ? (
+            <input
+              type="number"
+              min={0}
+              value={likesCount}
+              autoFocus
+              onChange={(e) => setLikesCount(parseInt(e.target.value) || 0)}
+              onBlur={() => { setEditingLikes(false); onLikesCount(post.id, likesCount); }}
+              className="font-extrabold text-blue-700 w-16 border border-indigo-400 rounded px-1 py-0.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400"
+            />
+          ) : (
+            <div>
+              <span className="text-sm font-extrabold text-blue-700">{likesCount}</span>
+              <span className="text-xs text-slate-400 ml-0.5">likes</span>
+              <br />
+              <button
+                onClick={() => setEditingLikes(true)}
+                className="text-xs font-bold text-indigo-500 hover:text-indigo-700 hover:underline"
+              >
+                Edit
+              </button>
+            </div>
+          )}
         </td>
         <td className="px-3 py-2">
           {post.grades.length === 0 ? (
