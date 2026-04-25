@@ -515,7 +515,7 @@ function PostRow({
       <tr className="border-b border-slate-100 hover:bg-slate-50 align-top">
         <td className="px-3 py-2 font-bold text-indigo-700">{index + 1}</td>
         <td className="px-3 py-2 font-bold text-slate-800">
-          {isAdmin && editingAuthor ? (
+          {editingAuthor ? (
             <input
               type="text"
               value={authorName}
@@ -529,9 +529,9 @@ function PostRow({
             />
           ) : (
             <span
-              onClick={() => isAdmin && setEditingAuthor(true)}
-              title={isAdmin ? "Click to edit name" : undefined}
-              className={isAdmin ? "cursor-pointer hover:text-indigo-600 hover:underline" : ""}
+              onClick={() => setEditingAuthor(true)}
+              title="Click to edit name"
+              className="cursor-pointer hover:text-indigo-600 hover:underline"
             >
               {authorName || <span className="text-slate-400 italic">Unknown</span>}
             </span>
@@ -547,7 +547,7 @@ function PostRow({
           )}
         </td>
         <td className="px-3 py-2">
-          {isAdmin && editingLikes ? (
+          {editingLikes ? (
             <input
               type="number"
               min={0}
@@ -562,9 +562,9 @@ function PostRow({
             />
           ) : (
             <span
-              onClick={() => isAdmin && setEditingLikes(true)}
-              title={isAdmin ? "Click to edit" : undefined}
-              className={`text-sm font-extrabold text-blue-700 ${isAdmin ? "cursor-pointer hover:underline" : ""}`}
+              onClick={() => setEditingLikes(true)}
+              title="Click to edit"
+              className="text-sm font-extrabold text-blue-700 cursor-pointer hover:underline"
             >
               {likesCount}
             </span>
