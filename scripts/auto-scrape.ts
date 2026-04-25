@@ -47,7 +47,7 @@ async function main() {
     try {
       const posts = await scrape({
         groupUrl: "https://www.facebook.com/groups/habuild",
-        hashtag: competition.hashtag || undefined,
+        hashtag: competition.hashtag && competition.hashtag.replace("#", "").trim() ? competition.hashtag : undefined,
         startDate: new Date(competition.startDate),
         endDate: new Date(competition.endDate),
         scrollCount: 15,
