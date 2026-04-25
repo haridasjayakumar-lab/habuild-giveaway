@@ -363,6 +363,13 @@ export default function CompetitionDetail({
                         body: JSON.stringify({ authorName }),
                       });
                     }}
+                    onLikesCount={async (postId, likesCount) => {
+                      await fetch(`/api/competitions/${id}/posts/${postId}`, {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ likesCount }),
+                      });
+                    }}
                     onGraded={() => {
                       loadCompetition();
                       if (judgeName.trim() && !judges.includes(judgeName.trim())) {
@@ -401,11 +408,14 @@ function PostRow({
   onDelete: (id: string) => void;
   onRemarks: (id: string, remarks: string) => void;
   onAuthorName: (id: string, authorName: string) => void;
+  onLikesCount: (id: string, likesCount: number) => void;
   onGraded: () => void;
 }) {
   const [remarks, setRemarks] = useState(post.remarks || "");
   const [authorName, setAuthorName] = useState(post.authorName || "");
   const [editingAuthor, setEditingAuthor] = useState(false);
+  const [likesCount, setLikesCount] = useState(post.likesCount);
+  const [editingLikes, setEditingLikes] = useState(false);
   const [showGrade, setShowGrade] = useState(false);
   const [scores, setScores] = useState<GradeScores>(() => {
     const initial: GradeScores = {};
@@ -537,7 +547,28 @@ function PostRow({
           )}
         </td>
         <td className="px-3 py-2">
-          <span className="text-sm font-extrabold text-blue-700">{post.likesCount}</span>
+          {isAdmin && editingLikes ? (
+            <input
+              type="number"
+              min={0}
+              value={likesCount}
+              onChange={(e) => setLikesCount(parseInt(e.target.value) || 0)}
+              onBlur={() => {
+                setEditingLikes(false);
+                onLikesCount(post.id, likesCount);
+              }}
+              autoFocus
+              className="border border-indigo-300 rounded px-1.5 py-0.5 text-sm font-bold w-20 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+            />
+          ) : (
+            <span
+              onClick={() => isAdmin && setEditingLikes(true)}
+              title={isAdmin ? "Click to edit" : undefined}
+              className={`text-sm font-extrabold text-blue-700 ${isAdmin ? "cursor-pointer hover:underline" : ""}`}
+            >
+              {likesCount}
+            </span>
+          )}
           <span className="text-xs text-slate-400 ml-0.5">likes</span>
         </td>
         <td className="px-3 py-2">

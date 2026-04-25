@@ -16,9 +16,10 @@ export async function PATCH(
 ) {
   const { postId } = await params;
   const body = await req.json();
-  const data: Record<string, string> = {};
+  const data: Record<string, string | number> = {};
   if (body.remarks !== undefined) data.remarks = body.remarks;
   if (body.authorName !== undefined) data.authorName = body.authorName;
+  if (body.likesCount !== undefined) data.likesCount = Number(body.likesCount);
   const post = await prisma.post.update({ where: { id: postId }, data });
   return NextResponse.json(post);
 }
