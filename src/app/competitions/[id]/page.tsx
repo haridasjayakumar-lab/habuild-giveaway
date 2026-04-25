@@ -92,12 +92,6 @@ export default function CompetitionDetail({
       .then((data: { name: string }[]) => setJudges(data.map((j) => j.name)));
   }, [loadCompetition]);
 
-  useEffect(() => {
-    if (session?.user?.name && !judgeName) {
-      setJudgeName(session.user.name);
-    }
-  }, [session, judgeName]);
-
   const handleFetchPosts = async () => {
     setFetching(true);
     setFetchMessage("");
@@ -156,14 +150,6 @@ export default function CompetitionDetail({
     if (!confirm("Delete this post?")) return;
     await fetch(`/api/competitions/${id}/posts/${postId}`, { method: "DELETE" });
     loadCompetition();
-  };
-
-  const handleRemarks = async (postId: string, remarks: string) => {
-    await fetch(`/api/competitions/${id}/posts/${postId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ remarks }),
-    });
   };
 
   const handleSaveSettings = async () => {
@@ -313,20 +299,18 @@ export default function CompetitionDetail({
       )}
 
       {/* Judge name input */}
-      <div className="mb-4 flex items-center gap-3">
-        <Label htmlFor="judgeName" className="font-bold whitespace-nowrap">Your Name (for grading):</Label>
-        <Input
+      <div className="mb-4 p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center gap-3 flex-wrap">
+        <Label htmlFor="judgeName" className="font-bold whitespace-nowrap text-slate-700">Your Name:</Label>
+        <input
           id="judgeName"
+          type="text"
           value={judgeName}
           onChange={(e) => setJudgeName(e.target.value)}
-          placeholder="Enter your name"
-          className="w-48 font-bold"
-          list="judge-list"
+          placeholder="Type your name here"
+          className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-bold w-52 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+          autoComplete="off"
         />
-        <datalist id="judge-list">
-          {judges.map((j) => <option key={j} value={j} />)}
-        </datalist>
-        <p className="text-xs text-muted-foreground font-bold">Enter your name, then click Grade on any post below.</p>
+        <p className="text-xs text-slate-500 font-bold">Enter your name first, then click Grade on any post row.</p>
       </div>
 
       {/* Posts table */}
@@ -345,12 +329,12 @@ export default function CompetitionDetail({
               <thead>
                 <tr className="bg-gradient-to-r from-indigo-50 to-blue-50 border-b border-slate-200">
                   <th className="text-left px-3 py-2 font-extrabold text-slate-700 w-8">#</th>
-                  <th className="text-left px-3 py-2 font-extrabold text-slate-700 w-40">Author</th>
+                  <th className="text-left px-3 py-2 font-extrabold text-slate-700 w-36">Author</th>
                   <th className="text-left px-3 py-2 font-extrabold text-slate-700">Post</th>
-                  <th className="text-left px-3 py-2 font-extrabold text-slate-700 w-32">Likes</th>
-                  <th className="text-left px-3 py-2 font-extrabold text-slate-700 w-48">Graded By</th>
-                  <th className="text-left px-3 py-2 font-extrabold text-slate-700 w-48">Remarks</th>
-                  <th className="text-left px-3 py-2 font-extrabold text-slate-700 w-24">Grade</th>
+                  <th className="text-left px-3 py-2 font-extrabold text-slate-700 w-20">Likes</th>
+                  <th className="text-left px-3 py-2 font-extrabold text-slate-700 w-44">Graded By</th>
+                  <th className="text-left px-3 py-2 font-extrabold text-slate-700 w-44">Remarks</th>
+                  <th className="text-left px-3 py-2 font-extrabold text-slate-700 w-28">Grade</th>
                   {isAdmin && <th className="text-left px-3 py-2 font-extrabold text-slate-700 w-16"></th>}
                 </tr>
               </thead>
@@ -365,10 +349,23 @@ export default function CompetitionDetail({
                     judgeName={judgeName}
                     competitionId={id}
                     onDelete={handleDelete}
-                    onRemarks={handleRemarks}
+                    onRemarks={async (postId, remarks) => {
+                      await fetch(`/api/competitions/${id}/posts/${postId}`, {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ remarks }),
+                      });
+                    }}
+                    onAuthorName={async (postId, authorName) => {
+                      await fetch(`/api/competitions/${id}/posts/${postId}`, {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ authorName }),
+                      });
+                    }}
                     onGraded={() => {
                       loadCompetition();
-                      if (!judges.includes(judgeName.trim())) {
+                      if (judgeName.trim() && !judges.includes(judgeName.trim())) {
                         setJudges([...judges, judgeName.trim()]);
                       }
                     }}
@@ -392,6 +389,7 @@ function PostRow({
   competitionId,
   onDelete,
   onRemarks,
+  onAuthorName,
   onGraded,
 }: {
   post: Post;
@@ -402,9 +400,12 @@ function PostRow({
   competitionId: string;
   onDelete: (id: string) => void;
   onRemarks: (id: string, remarks: string) => void;
+  onAuthorName: (id: string, authorName: string) => void;
   onGraded: () => void;
 }) {
   const [remarks, setRemarks] = useState(post.remarks || "");
+  const [authorName, setAuthorName] = useState(post.authorName || "");
+  const [editingAuthor, setEditingAuthor] = useState(false);
   const [showGrade, setShowGrade] = useState(false);
   const [scores, setScores] = useState<GradeScores>(() => {
     const initial: GradeScores = {};
@@ -412,14 +413,17 @@ function PostRow({
     return initial;
   });
   const [submitting, setSubmitting] = useState(false);
-  const [unlocking, setUnlocking] = useState(false);
 
-  const myGrade = post.grades.find((g) => g.judge.name === judgeName.trim());
-  const isLocked = !!myGrade;
+  const trimmedName = judgeName.trim();
+  const myGrade = post.grades.find((g) => g.judge.name === trimmedName);
+  // Post is graded by someone else (not me) — locked for current judge
+  const gradedByOther = post.grades.length > 0 && !myGrade;
+  // Post has no grades yet — anyone can grade
+  const ungraded = post.grades.length === 0;
 
   const handleGrade = async () => {
-    if (!judgeName.trim()) {
-      alert("Please enter your name in the 'Your Name' field above.");
+    if (!trimmedName) {
+      alert("Please enter your name in the 'Your Name' field above first.");
       return;
     }
     setSubmitting(true);
@@ -429,7 +433,7 @@ function PostRow({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           postId: post.id,
-          judgeName: judgeName.trim(),
+          judgeName: trimmedName,
           competitionId,
           scores,
         }),
@@ -445,25 +449,84 @@ function PostRow({
     }
   };
 
-  const handleUnlock = async () => {
-    if (!myGrade) return;
-    if (!confirm(`Remove ${judgeName}'s grade for this post? They will be able to re-grade it.`)) return;
-    setUnlocking(true);
-    try {
-      await fetch(`/api/grades/${myGrade.id}`, { method: "DELETE" });
-      onGraded();
-    } finally {
-      setUnlocking(false);
-    }
+  const handleUnlockGrade = async (gradeId: string, judgeName: string) => {
+    if (!confirm(`Remove ${judgeName}'s grade? They will be able to re-grade.`)) return;
+    await fetch(`/api/grades/${gradeId}`, { method: "DELETE" });
+    onGraded();
   };
 
   const totalScore = Object.values(scores).reduce((a, b) => a + b, 0);
+
+  // Determine grade cell content
+  let gradeCell: React.ReactNode;
+  if (myGrade) {
+    // I already graded — show locked score, I can re-grade
+    gradeCell = (
+      <div className="flex items-center gap-1 flex-wrap">
+        <button
+          onClick={() => setShowGrade(!showGrade)}
+          className="text-xs font-bold bg-emerald-100 text-emerald-700 hover:bg-emerald-200 px-2 py-1 rounded transition-colors"
+          title="You graded this — click to update your score"
+        >
+          Mine: {myGrade.totalScore} ✏️
+        </button>
+        {isAdmin && (
+          <button
+            onClick={() => handleUnlockGrade(myGrade.id, trimmedName)}
+            title="Admin: remove this grade"
+            className="text-xs font-bold text-amber-600 hover:text-amber-800 px-1 py-1 rounded hover:bg-amber-50"
+          >
+            Unlock
+          </button>
+        )}
+      </div>
+    );
+  } else if (gradedByOther) {
+    // Someone else graded — locked for me
+    gradeCell = (
+      <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded">
+        Locked
+      </span>
+    );
+  } else {
+    // No grades yet — I can grade
+    gradeCell = (
+      <button
+        onClick={() => setShowGrade(!showGrade)}
+        className="text-xs font-bold px-2 py-1 rounded transition-colors bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
+      >
+        {showGrade ? "Cancel" : "Grade"}
+      </button>
+    );
+  }
 
   return (
     <>
       <tr className="border-b border-slate-100 hover:bg-slate-50 align-top">
         <td className="px-3 py-2 font-bold text-indigo-700">{index + 1}</td>
-        <td className="px-3 py-2 font-bold text-slate-800">{post.authorName}</td>
+        <td className="px-3 py-2 font-bold text-slate-800">
+          {isAdmin && editingAuthor ? (
+            <input
+              type="text"
+              value={authorName}
+              onChange={(e) => setAuthorName(e.target.value)}
+              onBlur={() => {
+                setEditingAuthor(false);
+                onAuthorName(post.id, authorName);
+              }}
+              autoFocus
+              className="border border-indigo-300 rounded px-1.5 py-0.5 text-xs font-bold w-full focus:outline-none focus:ring-1 focus:ring-indigo-400"
+            />
+          ) : (
+            <span
+              onClick={() => isAdmin && setEditingAuthor(true)}
+              title={isAdmin ? "Click to edit name" : undefined}
+              className={isAdmin ? "cursor-pointer hover:text-indigo-600 hover:underline" : ""}
+            >
+              {authorName || <span className="text-slate-400 italic">Unknown</span>}
+            </span>
+          )}
+        </td>
         <td className="px-3 py-2 text-slate-700 max-w-xs">
           <p className="line-clamp-3 font-medium">{post.content}</p>
           {post.postUrl && (
@@ -474,7 +537,8 @@ function PostRow({
           )}
         </td>
         <td className="px-3 py-2">
-          <span className="text-xs font-bold text-blue-700">{post.likesCount} likes</span>
+          <span className="text-sm font-extrabold text-blue-700">{post.likesCount}</span>
+          <span className="text-xs text-slate-400 ml-0.5">likes</span>
         </td>
         <td className="px-3 py-2">
           {post.grades.length === 0 ? (
@@ -489,12 +553,8 @@ function PostRow({
                   </Badge>
                   {isAdmin && (
                     <button
-                      onClick={async () => {
-                        if (!confirm(`Remove ${g.judge.name}'s grade?`)) return;
-                        await fetch(`/api/grades/${g.id}`, { method: "DELETE" });
-                        onGraded();
-                      }}
-                      title="Unlock (remove this grade)"
+                      onClick={() => handleUnlockGrade(g.id, g.judge.name)}
+                      title="Remove this grade"
                       className="text-slate-400 hover:text-red-500 text-xs font-bold ml-0.5 leading-none"
                     >
                       ×
@@ -515,32 +575,7 @@ function PostRow({
             onBlur={() => onRemarks(post.id, remarks)}
           />
         </td>
-        <td className="px-3 py-2">
-          {isLocked ? (
-            <div className="flex items-center gap-1">
-              <span className="text-xs font-bold bg-emerald-100 text-emerald-700 px-2 py-1 rounded flex items-center gap-1">
-                Graded: {myGrade.totalScore}
-              </span>
-              {isAdmin && (
-                <button
-                  onClick={handleUnlock}
-                  disabled={unlocking}
-                  title="Admin: remove this grade so judge can re-grade"
-                  className="text-xs font-bold text-amber-600 hover:text-amber-800 px-1 py-1 rounded hover:bg-amber-50 transition-colors"
-                >
-                  Unlock
-                </button>
-              )}
-            </div>
-          ) : (
-            <button
-              onClick={() => setShowGrade(!showGrade)}
-              className="text-xs font-bold px-2 py-1 rounded transition-colors bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
-            >
-              {showGrade ? "Cancel" : "Grade"}
-            </button>
-          )}
-        </td>
+        <td className="px-3 py-2">{gradeCell}</td>
         {isAdmin && (
           <td className="px-3 py-2">
             <button onClick={() => onDelete(post.id)}
@@ -550,7 +585,8 @@ function PostRow({
           </td>
         )}
       </tr>
-      {showGrade && !isLocked && (
+      {/* Grade expansion panel — only for my own grade or ungraded posts */}
+      {showGrade && (ungraded || myGrade) && (
         <tr className="bg-indigo-50/60 border-b border-indigo-100">
           <td colSpan={isAdmin ? 8 : 7} className="px-4 py-3">
             <div className="flex flex-wrap gap-4 items-end">
@@ -582,7 +618,7 @@ function PostRow({
                   disabled={submitting}
                   className="bg-gradient-to-r from-indigo-700 to-blue-700 text-white font-bold hover:opacity-90"
                 >
-                  {submitting ? "..." : "Submit Grade"}
+                  {submitting ? "..." : myGrade ? "Update Grade" : "Submit Grade"}
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => setShowGrade(false)} className="font-bold">
                   Cancel
