@@ -13,9 +13,9 @@ export async function GET() {
 
 export async function POST(req: Request) {
   const body = await req.json();
-  const { name, hashtag, startDate, endDate, criteria } = body;
+  const { name, hashtag, startDate, endDate, criteria, postingWindowStart, postingWindowEnd } = body;
 
-  if (!name || !hashtag || !startDate || !endDate || !criteria) {
+  if (!name || !startDate || !endDate || !criteria) {
     return NextResponse.json(
       { error: "Missing required fields" },
       { status: 400 }
@@ -25,10 +25,12 @@ export async function POST(req: Request) {
   const competition = await prisma.competition.create({
     data: {
       name,
-      hashtag,
+      hashtag: hashtag || "",
       startDate: new Date(startDate),
       endDate: new Date(endDate),
       criteria: JSON.stringify(criteria),
+      postingWindowStart: postingWindowStart || null,
+      postingWindowEnd: postingWindowEnd || null,
     },
   });
 

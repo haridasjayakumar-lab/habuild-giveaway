@@ -25,6 +25,8 @@ export default function NewCompetition() {
     { name: "Effort", maxScore: 10 },
     { name: "Relevance", maxScore: 10 },
   ]);
+  const [postingWindowStart, setPostingWindowStart] = useState("");
+  const [postingWindowEnd, setPostingWindowEnd] = useState("");
   const [saving, setSaving] = useState(false);
 
   const addCriterion = () => {
@@ -58,6 +60,8 @@ export default function NewCompetition() {
         startDate,
         endDate,
         criteria: criteria.filter((c) => c.name.trim()),
+        postingWindowStart: postingWindowStart || undefined,
+        postingWindowEnd: postingWindowEnd || undefined,
       }),
     });
 
@@ -103,9 +107,32 @@ export default function NewCompetition() {
                 required
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Only posts containing this hashtag will be fetched.
+                Only posts containing this hashtag will be fetched. Leave blank if using posting window instead.
               </p>
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="postingWindowStart">Posting Window Start (IST)</Label>
+                <Input
+                  id="postingWindowStart"
+                  type="time"
+                  value={postingWindowStart}
+                  onChange={(e) => setPostingWindowStart(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="postingWindowEnd">Posting Window End (IST)</Label>
+                <Input
+                  id="postingWindowEnd"
+                  type="time"
+                  value={postingWindowEnd}
+                  onChange={(e) => setPostingWindowEnd(e.target.value)}
+                />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground -mt-2">
+              Optional: only fetch posts made between these times each day (e.g. 3:00 PM – 7:00 PM IST). Use this instead of a hashtag.
+            </p>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="startDate">Start Date</Label>

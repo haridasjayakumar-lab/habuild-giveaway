@@ -23,6 +23,8 @@ interface Competition {
   hashtag: string;
   startDate: string;
   endDate: string;
+  postingWindowStart?: string | null;
+  postingWindowEnd?: string | null;
 }
 
 async function main() {
@@ -45,10 +47,12 @@ async function main() {
     try {
       const posts = await scrape({
         groupUrl: "https://www.facebook.com/groups/habuild",
-        hashtag: competition.hashtag,
+        hashtag: competition.hashtag || undefined,
         startDate: new Date(competition.startDate),
         endDate: new Date(competition.endDate),
         scrollCount: 15,
+        postingWindowStart: competition.postingWindowStart || undefined,
+        postingWindowEnd: competition.postingWindowEnd || undefined,
       });
 
       console.log(`Scraped ${posts.length} posts, uploading...`);

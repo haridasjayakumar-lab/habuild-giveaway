@@ -29,11 +29,13 @@ export interface ScrapedPost {
 
 export interface ScrapeOptions {
   groupUrl: string;
-  hashtag: string;
+  hashtag?: string;
   startDate: Date;
   endDate: Date;
   scrollCount: number;
   cookiesPath?: string;
+  postingWindowStart?: string; // "HH:MM" IST
+  postingWindowEnd?: string;   // "HH:MM" IST
 }
 
 // ────────────────────── Helpers ──────────────────────
@@ -90,6 +92,16 @@ function parseFBDate(text: string): Date {
   return now;
 }
 
+/** Check if a date falls within a time window (IST = UTC+5:30) */
+function isWithinTimeWindow(date: Date, start: string, end: string): boolean {
+  const istOffsetMs = 5.5 * 60 * 60 * 1000;
+  const istDate = new Date(date.getTime() + istOffsetMs);
+  const totalMinutes = istDate.getUTCHours() * 60 + istDate.getUTCMinutes();
+  const [sh, sm] = start.split(":").map(Number);
+  const [eh, em] = end.split(":").map(Number);
+  return totalMinutes >= sh * 60 + sm && totalMinutes <= eh * 60 + em;
+}
+
 // ────────────────────── Main Scraper ──────────────────────
 
 export async function scrape(opts: ScrapeOptions): Promise<ScrapedPost[]> {
@@ -141,9 +153,11 @@ export async function scrape(opts: ScrapeOptions): Promise<ScrapedPost[]> {
 
   const page = await context.newPage();
 
-  // Search within the group for the specific hashtag
-  const searchUrl = `${opts.groupUrl}/search/?q=${encodeURIComponent(opts.hashtag)}`;
-  await page.goto(searchUrl, { waitUntil: "domcontentloaded" });
+  // If hashtag provided, search for it; otherwise load the group feed sorted by recent
+  const targetUrl = opts.hashtag
+    ? `${opts.groupUrl}/search/?q=${encodeURIComponent(opts.hashtag)}`
+    : `${opts.groupUrl}?sorting_setting=RECENT_ACTIVITY`;
+  await page.goto(targetUrl, { waitUntil: "domcontentloaded" });
   await page.waitForTimeout(3000);
 
   try {
@@ -250,30 +264,40 @@ export async function scrape(opts: ScrapeOptions): Promise<ScrapedPost[]> {
 
   process.stderr.write(`Found ${posts.length} raw posts\n`);
 
-  const hashtagLower = opts.hashtag.toLowerCase().replace("#", "");
-  const hashtagWords = opts.hashtag
-    .replace("#", "")
-    .replace(/([a-z])([A-Z])/g, "$1 $2")
-    .toLowerCase()
-    .split(/\s+/)
-    .filter((w) => w.length > 2);
-  const hashtagAlpha = hashtagLower.replace(/[^a-z0-9]/g, "");
+  const useTimeWindow = !!(opts.postingWindowStart && opts.postingWindowEnd);
+  const useHashtag = !!opts.hashtag;
+
+  let hashtagLower = "", hashtagWords: string[] = [], hashtagAlpha = "";
+  if (useHashtag && opts.hashtag) {
+    hashtagLower = opts.hashtag.toLowerCase().replace("#", "");
+    hashtagWords = opts.hashtag
+      .replace("#", "")
+      .replace(/([a-z])([A-Z])/g, "$1 $2")
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((w) => w.length > 2);
+    hashtagAlpha = hashtagLower.replace(/[^a-z0-9]/g, "");
+  }
 
   const filtered: ScrapedPost[] = [];
 
   for (const post of posts) {
-    const contentLower = post.content.toLowerCase();
-    const contentAlpha = contentLower.replace(/[^a-z0-9]/g, "");
-
-    const hasExactHashtag = contentLower.includes(`#${hashtagLower}`);
-    const hasAlphaMatch = contentAlpha.includes(hashtagAlpha);
-    const hasAllWords = hashtagWords.length > 1 && hashtagWords.every((w) => contentLower.includes(w));
-
-    if (!hasExactHashtag && !hasAlphaMatch && !hasAllWords) continue;
-
     const createdTime = parseFBDate(post.dateText);
 
     if (createdTime < opts.startDate || createdTime > opts.endDate) continue;
+
+    if (useHashtag) {
+      const contentLower = post.content.toLowerCase();
+      const contentAlpha = contentLower.replace(/[^a-z0-9]/g, "");
+      const hasExactHashtag = contentLower.includes(`#${hashtagLower}`);
+      const hasAlphaMatch = contentAlpha.includes(hashtagAlpha);
+      const hasAllWords = hashtagWords.length > 1 && hashtagWords.every((w) => contentLower.includes(w));
+      if (!hasExactHashtag && !hasAlphaMatch && !hasAllWords) continue;
+    }
+
+    if (useTimeWindow) {
+      if (!isWithinTimeWindow(createdTime, opts.postingWindowStart!, opts.postingWindowEnd!)) continue;
+    }
 
     filtered.push({
       fbPostId: post.id,
@@ -293,7 +317,7 @@ export async function scrape(opts: ScrapeOptions): Promise<ScrapedPost[]> {
   filtered.sort((a, b) => b.likesCount - a.likesCount);
 
   process.stderr.write(
-    `Filtered to ${filtered.length} posts matching ${opts.hashtag}\n`
+    `Filtered to ${filtered.length} posts\n`
   );
 
   await browser.close();
@@ -312,13 +336,15 @@ if (process.argv[1] === import.meta.filename || process.argv[1]?.endsWith("scrap
     }
     return {
       groupUrl: flags.group || "https://www.facebook.com/groups/habuild",
-      hashtag: flags.hashtag || "#giveaway",
+      hashtag: flags.hashtag || undefined,
       startDate: flags.startDate
         ? new Date(flags.startDate)
         : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
       endDate: flags.endDate ? new Date(flags.endDate) : new Date(),
       scrollCount: parseInt(flags.scrolls || "15", 10),
       cookiesPath: flags.cookies || "",
+      postingWindowStart: flags.windowStart || undefined,
+      postingWindowEnd: flags.windowEnd || undefined,
     };
   }
 

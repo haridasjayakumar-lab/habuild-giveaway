@@ -16,15 +16,17 @@ model User {
 }
 
 model Competition {
-  id        String   @id @default(cuid())
-  name      String
-  hashtag   String
-  startDate DateTime
-  endDate   DateTime
-  criteria  String   // JSON: [{name: string, maxScore: number}]
-  createdAt DateTime @default(now())
-  posts     Post[]
-  grades    Grade[]
+  id                  String   @id @default(cuid())
+  name                String
+  hashtag             String   @default("")
+  startDate           DateTime
+  endDate             DateTime
+  criteria            String   // JSON: [{name: string, maxScore: number}]
+  postingWindowStart  String?  // "HH:MM" IST e.g. "15:00"
+  postingWindowEnd    String?  // "HH:MM" IST e.g. "19:00"
+  createdAt           DateTime @default(now())
+  posts               Post[]
+  grades              Grade[]
 }
 
 model Post {
@@ -36,6 +38,7 @@ model Post {
   content          String
   imageUrl         String?
   postUrl          String?
+  remarks          String?
   likesCount       Int         @default(0)
   commentsCount    Int         @default(0)
   createdTime      DateTime
