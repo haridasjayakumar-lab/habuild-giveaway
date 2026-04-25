@@ -4,6 +4,7 @@ export interface ParsedPost {
   authorProfileUrl: string | null;
   content: string;
   imageUrl: string | null;
+  postUrl: string | null;
   likesCount: number;
   commentsCount: number;
   createdTime: Date;

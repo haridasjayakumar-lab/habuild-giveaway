@@ -21,6 +21,7 @@ export interface ScrapedPost {
   authorProfileUrl: string | null;
   content: string;
   imageUrl: string | null;
+  postUrl: string | null;
   likesCount: number;
   commentsCount: number;
   createdTime: string; // ISO string
@@ -165,6 +166,7 @@ export async function scrape(opts: ScrapeOptions): Promise<ScrapedPost[]> {
       id: string;
       authorName: string;
       authorUrl: string | null;
+      postUrl: string | null;
       content: string;
       imageUrl: string | null;
       reactionsText: string;
@@ -192,6 +194,10 @@ export async function scrape(opts: ScrapeOptions): Promise<ScrapedPost[]> {
       const hash = content.substring(0, 100);
       if (seen.has(hash)) return;
       seen.add(hash);
+
+      // Post URL
+      const postLinkEl = el.querySelector('a[href*="/posts/"], a[href*="/groups/"][href*="?id="]');
+      const postUrl = postLinkEl ? postLinkEl.getAttribute("href")?.split("?")[0] || null : null;
 
       const authorEl =
         el.querySelector("h2 a, h3 a, strong a, h4 a") ||
@@ -230,6 +236,7 @@ export async function scrape(opts: ScrapeOptions): Promise<ScrapedPost[]> {
         id: `post_${i}_${Date.now()}`,
         authorName,
         authorUrl,
+        postUrl,
         content,
         imageUrl,
         reactionsText,
@@ -274,6 +281,7 @@ export async function scrape(opts: ScrapeOptions): Promise<ScrapedPost[]> {
       authorProfileUrl: post.authorUrl,
       content: post.content,
       imageUrl: post.imageUrl,
+      postUrl: post.postUrl,
       likesCount: parseReactionCount(post.reactionsText),
       commentsCount: parseReactionCount(
         post.commentsText.replace(/[^0-9km.]/gi, "")

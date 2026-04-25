@@ -22,6 +22,7 @@ interface Post {
   authorName: string;
   content: string;
   imageUrl: string | null;
+  postUrl: string | null;
   likesCount: number;
   commentsCount: number;
   createdTime: string;
@@ -282,9 +283,21 @@ export default function CompetitionDetail({
                     className="rounded-lg max-h-64 object-cover shadow-sm"
                   />
                 )}
-                <p className="text-xs text-muted-foreground font-bold mt-2">
-                  Posted: {new Date(post.createdTime).toLocaleString()}
-                </p>
+                <div className="flex items-center justify-between mt-2">
+                  <p className="text-xs text-muted-foreground font-bold">
+                    Posted: {new Date(post.createdTime).toLocaleString()}
+                  </p>
+                  {post.postUrl && (
+                    <a
+                      href={post.postUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs font-bold text-indigo-600 hover:underline"
+                    >
+                      View on Facebook →
+                    </a>
+                  )}
+                </div>
               </CardContent>
             </Card>
           ))}

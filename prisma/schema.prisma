@@ -35,6 +35,7 @@ model Post {
   authorProfileUrl String?
   content          String
   imageUrl         String?
+  postUrl          String?
   likesCount       Int         @default(0)
   commentsCount    Int         @default(0)
   createdTime      DateTime

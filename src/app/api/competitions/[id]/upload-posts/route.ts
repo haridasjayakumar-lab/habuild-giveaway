@@ -18,6 +18,7 @@ export async function POST(
     authorProfileUrl?: string | null;
     content: string;
     imageUrl?: string | null;
+    postUrl?: string | null;
     likesCount?: number;
     commentsCount?: number;
     createdTime?: string;
@@ -56,6 +57,7 @@ export async function POST(
           commentsCount: post.commentsCount ?? existing.commentsCount,
           content: post.content,
           imageUrl: post.imageUrl ?? existing.imageUrl,
+          postUrl: post.postUrl ?? existing.postUrl,
         },
       });
       updated++;
@@ -67,6 +69,7 @@ export async function POST(
           authorProfileUrl: post.authorProfileUrl ?? null,
           content: post.content,
           imageUrl: post.imageUrl ?? null,
+          postUrl: post.postUrl ?? null,
           likesCount: post.likesCount ?? 0,
           commentsCount: post.commentsCount ?? 0,
           createdTime,
