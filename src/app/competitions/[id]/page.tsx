@@ -468,15 +468,17 @@ function PostRow({
   // Determine grade cell content
   let gradeCell: React.ReactNode;
   if (myGrade) {
-    // I already graded — show locked score, I can re-grade
+    // I already graded — show my score + Edit button
     gradeCell = (
       <div className="flex items-center gap-1 flex-wrap">
+        <span className="text-xs font-bold bg-emerald-100 text-emerald-800 px-2 py-1 rounded">
+          {myGrade.totalScore} pts
+        </span>
         <button
           onClick={() => setShowGrade(!showGrade)}
-          className="text-xs font-bold bg-emerald-100 text-emerald-700 hover:bg-emerald-200 px-2 py-1 rounded transition-colors"
-          title="You graded this — click to update your score"
+          className="text-xs font-bold bg-blue-100 text-blue-700 hover:bg-blue-200 px-2 py-1 rounded transition-colors"
         >
-          Mine: {myGrade.totalScore} ✏️
+          {showGrade ? "Cancel" : "Edit"}
         </button>
         {isAdmin && (
           <button
