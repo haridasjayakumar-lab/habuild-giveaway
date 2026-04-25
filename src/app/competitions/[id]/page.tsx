@@ -8,7 +8,14 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { Criterion } from "@/lib/types";
+import { Criterion, GradeScores } from "@/lib/types";
+
+interface Grade {
+  id: string;
+  totalScore: number;
+  scores: string;
+  judge: { id: string; name: string };
+}
 
 interface Post {
   id: string;
@@ -21,11 +28,7 @@ interface Post {
   likesCount: number;
   commentsCount: number;
   createdTime: string;
-  grades: {
-    id: string;
-    totalScore: number;
-    judge: { name: string };
-  }[];
+  grades: Grade[];
 }
 
 interface Competition {
@@ -54,19 +57,46 @@ export default function CompetitionDetail({
   const [scrollCount, setScrollCount] = useState(15);
   const [showFetchSettings, setShowFetchSettings] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [judgeName, setJudgeName] = useState("");
+  const [judges, setJudges] = useState<string[]>([]);
+
+  // Edit competition settings state
+  const [showEditSettings, setShowEditSettings] = useState(false);
+  const [editHashtag, setEditHashtag] = useState("");
+  const [editWindowStart, setEditWindowStart] = useState("");
+  const [editWindowEnd, setEditWindowEnd] = useState("");
+  const [editStartDate, setEditStartDate] = useState("");
+  const [editEndDate, setEditEndDate] = useState("");
+  const [savingSettings, setSavingSettings] = useState(false);
 
   const isAdmin = (session?.user as { role?: string } | undefined)?.role === "admin";
 
   const loadCompetition = useCallback(() => {
     fetch(`/api/competitions/${id}`)
       .then((r) => r.json())
-      .then(setCompetition)
+      .then((data: Competition) => {
+        setCompetition(data);
+        setEditHashtag(data.hashtag || "");
+        setEditWindowStart(data.postingWindowStart || "");
+        setEditWindowEnd(data.postingWindowEnd || "");
+        setEditStartDate(data.startDate ? data.startDate.split("T")[0] : "");
+        setEditEndDate(data.endDate ? data.endDate.split("T")[0] : "");
+      })
       .finally(() => setLoading(false));
   }, [id]);
 
   useEffect(() => {
     loadCompetition();
+    fetch("/api/judges")
+      .then((r) => r.json())
+      .then((data: { name: string }[]) => setJudges(data.map((j) => j.name)));
   }, [loadCompetition]);
+
+  useEffect(() => {
+    if (session?.user?.name && !judgeName) {
+      setJudgeName(session.user.name);
+    }
+  }, [session, judgeName]);
 
   const handleFetchPosts = async () => {
     setFetching(true);
@@ -136,6 +166,32 @@ export default function CompetitionDetail({
     });
   };
 
+  const handleSaveSettings = async () => {
+    setSavingSettings(true);
+    try {
+      const res = await fetch(`/api/competitions/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          hashtag: editHashtag,
+          postingWindowStart: editWindowStart || null,
+          postingWindowEnd: editWindowEnd || null,
+          startDate: editStartDate,
+          endDate: editEndDate,
+        }),
+      });
+      if (res.ok) {
+        setFetchMessage("Competition settings saved.");
+        setShowEditSettings(false);
+        loadCompetition();
+      } else {
+        setFetchMessage("Failed to save settings.");
+      }
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
   if (loading) return <p className="text-muted-foreground font-bold">Loading competition...</p>;
   if (!competition) return <p className="text-destructive font-bold">Competition not found.</p>;
 
@@ -172,8 +228,11 @@ export default function CompetitionDetail({
         <div className="flex gap-2 flex-wrap justify-end">
           {isAdmin && (
             <>
-              <Button variant="outline" size="sm" className="font-bold" onClick={() => setShowFetchSettings(!showFetchSettings)}>
-                Settings
+              <Button variant="outline" size="sm" className="font-bold" onClick={() => { setShowEditSettings(!showEditSettings); setShowFetchSettings(false); }}>
+                Edit Settings
+              </Button>
+              <Button variant="outline" size="sm" className="font-bold" onClick={() => { setShowFetchSettings(!showFetchSettings); setShowEditSettings(false); }}>
+                Fetch Settings
               </Button>
               <Button onClick={handleFetchPosts} disabled={fetching} className="bg-gradient-to-r from-indigo-700 to-blue-700 text-white font-bold hover:opacity-90">
                 {fetching ? "Getting Posts..." : "Get Posts"}
@@ -186,15 +245,52 @@ export default function CompetitionDetail({
               </label>
             </>
           )}
-          <Link href={`/competitions/${id}/grade`}>
-            <Button variant="outline" className="font-bold border-blue-300 text-blue-700 hover:bg-blue-50">Grade Posts</Button>
-          </Link>
           <Link href={`/competitions/${id}/leaderboard`}>
             <Button variant="outline" className="font-bold border-teal-300 text-teal-700 hover:bg-teal-50">Leaderboard</Button>
           </Link>
         </div>
       </div>
 
+      {/* Edit Competition Settings */}
+      {isAdmin && showEditSettings && (
+        <Card className="mb-4 border-amber-200 bg-amber-50/50">
+          <CardContent className="pt-4 space-y-4">
+            <h3 className="font-extrabold text-slate-800">Edit Competition Settings</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="font-bold">Hashtag Filter</Label>
+                <Input value={editHashtag} onChange={(e) => setEditHashtag(e.target.value)} placeholder="#giveaway" />
+                <p className="text-xs text-muted-foreground mt-1">Leave blank to use time window instead</p>
+              </div>
+              <div></div>
+              <div>
+                <Label className="font-bold">Posting Window Start (IST)</Label>
+                <Input type="time" value={editWindowStart} onChange={(e) => setEditWindowStart(e.target.value)} />
+              </div>
+              <div>
+                <Label className="font-bold">Posting Window End (IST)</Label>
+                <Input type="time" value={editWindowEnd} onChange={(e) => setEditWindowEnd(e.target.value)} />
+              </div>
+              <div>
+                <Label className="font-bold">Start Date</Label>
+                <Input type="date" value={editStartDate} onChange={(e) => setEditStartDate(e.target.value)} />
+              </div>
+              <div>
+                <Label className="font-bold">End Date</Label>
+                <Input type="date" value={editEndDate} onChange={(e) => setEditEndDate(e.target.value)} />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={handleSaveSettings} disabled={savingSettings} className="bg-amber-600 hover:bg-amber-700 text-white font-bold">
+                {savingSettings ? "Saving..." : "Save Settings"}
+              </Button>
+              <Button variant="outline" onClick={() => setShowEditSettings(false)} className="font-bold">Cancel</Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Fetch Settings */}
       {isAdmin && showFetchSettings && (
         <Card className="mb-4 border-indigo-200 bg-indigo-50/50">
           <CardContent className="pt-4">
@@ -215,6 +311,23 @@ export default function CompetitionDetail({
           {fetchMessage}
         </div>
       )}
+
+      {/* Judge name input */}
+      <div className="mb-4 flex items-center gap-3">
+        <Label htmlFor="judgeName" className="font-bold whitespace-nowrap">Your Name (for grading):</Label>
+        <Input
+          id="judgeName"
+          value={judgeName}
+          onChange={(e) => setJudgeName(e.target.value)}
+          placeholder="Enter your name"
+          className="w-48 font-bold"
+          list="judge-list"
+        />
+        <datalist id="judge-list">
+          {judges.map((j) => <option key={j} value={j} />)}
+        </datalist>
+        <p className="text-xs text-muted-foreground font-bold">Enter your name, then click Grade on any post below.</p>
+      </div>
 
       {/* Posts table */}
       <div className="mt-2">
@@ -237,6 +350,7 @@ export default function CompetitionDetail({
                   <th className="text-left px-3 py-2 font-extrabold text-slate-700 w-32">Likes</th>
                   <th className="text-left px-3 py-2 font-extrabold text-slate-700 w-48">Graded By</th>
                   <th className="text-left px-3 py-2 font-extrabold text-slate-700 w-48">Remarks</th>
+                  <th className="text-left px-3 py-2 font-extrabold text-slate-700 w-24">Grade</th>
                   {isAdmin && <th className="text-left px-3 py-2 font-extrabold text-slate-700 w-16"></th>}
                 </tr>
               </thead>
@@ -247,8 +361,17 @@ export default function CompetitionDetail({
                     post={post}
                     index={index}
                     isAdmin={isAdmin}
+                    criteria={criteria}
+                    judgeName={judgeName}
+                    competitionId={id}
                     onDelete={handleDelete}
                     onRemarks={handleRemarks}
+                    onGraded={() => {
+                      loadCompetition();
+                      if (!judges.includes(judgeName.trim())) {
+                        setJudges([...judges, judgeName.trim()]);
+                      }
+                    }}
                   />
                 ))}
               </tbody>
@@ -264,67 +387,172 @@ function PostRow({
   post,
   index,
   isAdmin,
+  criteria,
+  judgeName,
+  competitionId,
   onDelete,
   onRemarks,
+  onGraded,
 }: {
   post: Post;
   index: number;
   isAdmin: boolean;
+  criteria: Criterion[];
+  judgeName: string;
+  competitionId: string;
   onDelete: (id: string) => void;
   onRemarks: (id: string, remarks: string) => void;
+  onGraded: () => void;
 }) {
   const [remarks, setRemarks] = useState(post.remarks || "");
+  const [showGrade, setShowGrade] = useState(false);
+  const [scores, setScores] = useState<GradeScores>(() => {
+    const initial: GradeScores = {};
+    criteria.forEach((c) => (initial[c.name] = 0));
+    return initial;
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [graded, setGraded] = useState(false);
+
+  const myGrade = post.grades.find((g) => g.judge.name === judgeName.trim());
+
+  const handleGrade = async () => {
+    if (!judgeName.trim()) {
+      alert("Please enter your name in the 'Your Name' field above.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/grades", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          postId: post.id,
+          judgeName: judgeName.trim(),
+          competitionId,
+          scores,
+        }),
+      });
+      if (res.ok) {
+        setGraded(true);
+        setShowGrade(false);
+        onGraded();
+      } else {
+        alert("Failed to submit grade.");
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const totalScore = Object.values(scores).reduce((a, b) => a + b, 0);
 
   return (
-    <tr className="border-b border-slate-100 hover:bg-slate-50 align-top">
-      <td className="px-3 py-2 font-bold text-indigo-700">{index + 1}</td>
-      <td className="px-3 py-2 font-bold text-slate-800">{post.authorName}</td>
-      <td className="px-3 py-2 text-slate-700 max-w-xs">
-        <p className="line-clamp-3 font-medium">{post.content}</p>
-        {post.postUrl && (
-          <a href={post.postUrl} target="_blank" rel="noopener noreferrer"
-            className="text-xs font-bold text-indigo-600 hover:underline mt-1 block">
-            View on Facebook →
-          </a>
-        )}
-      </td>
-      <td className="px-3 py-2">
-        <span className="text-xs font-bold text-blue-700">{post.likesCount} likes</span>
-      </td>
-      <td className="px-3 py-2">
-        {post.grades.length === 0 ? (
-          <span className="text-xs text-muted-foreground font-bold">Not graded</span>
-        ) : (
-          <div className="space-y-1">
-            {post.grades.map((g) => (
-              <div key={g.id} className="flex items-center gap-1">
-                <span className="text-xs font-bold text-slate-700">{g.judge.name}</span>
-                <Badge variant="secondary" className="text-xs bg-emerald-100 text-emerald-800 font-bold px-1">
-                  {g.totalScore}
-                </Badge>
-              </div>
-            ))}
-          </div>
-        )}
-      </td>
-      <td className="px-3 py-2">
-        <textarea
-          className="w-full text-xs border border-slate-200 rounded-lg p-1.5 resize-none font-medium focus:outline-none focus:ring-2 focus:ring-indigo-300"
-          rows={2}
-          placeholder="Add remarks..."
-          value={remarks}
-          onChange={(e) => setRemarks(e.target.value)}
-          onBlur={() => onRemarks(post.id, remarks)}
-        />
-      </td>
-      {isAdmin && (
+    <>
+      <tr className="border-b border-slate-100 hover:bg-slate-50 align-top">
+        <td className="px-3 py-2 font-bold text-indigo-700">{index + 1}</td>
+        <td className="px-3 py-2 font-bold text-slate-800">{post.authorName}</td>
+        <td className="px-3 py-2 text-slate-700 max-w-xs">
+          <p className="line-clamp-3 font-medium">{post.content}</p>
+          {post.postUrl && (
+            <a href={post.postUrl} target="_blank" rel="noopener noreferrer"
+              className="text-xs font-bold text-indigo-600 hover:underline mt-1 block">
+              View on Facebook →
+            </a>
+          )}
+        </td>
         <td className="px-3 py-2">
-          <button onClick={() => onDelete(post.id)}
-            className="text-red-500 hover:text-red-700 font-bold text-xs px-2 py-1 rounded hover:bg-red-50 transition-colors">
-            Delete
+          <span className="text-xs font-bold text-blue-700">{post.likesCount} likes</span>
+        </td>
+        <td className="px-3 py-2">
+          {post.grades.length === 0 ? (
+            <span className="text-xs text-muted-foreground font-bold">Not graded</span>
+          ) : (
+            <div className="space-y-1">
+              {post.grades.map((g) => (
+                <div key={g.id} className="flex items-center gap-1">
+                  <span className="text-xs font-bold text-slate-700">{g.judge.name}</span>
+                  <Badge variant="secondary" className="text-xs bg-emerald-100 text-emerald-800 font-bold px-1">
+                    {g.totalScore}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          )}
+        </td>
+        <td className="px-3 py-2">
+          <textarea
+            className="w-full text-xs border border-slate-200 rounded-lg p-1.5 resize-none font-medium focus:outline-none focus:ring-2 focus:ring-indigo-300"
+            rows={2}
+            placeholder="Add remarks..."
+            value={remarks}
+            onChange={(e) => setRemarks(e.target.value)}
+            onBlur={() => onRemarks(post.id, remarks)}
+          />
+        </td>
+        <td className="px-3 py-2">
+          <button
+            onClick={() => setShowGrade(!showGrade)}
+            className={`text-xs font-bold px-2 py-1 rounded transition-colors ${
+              graded || myGrade
+                ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                : "bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
+            }`}
+          >
+            {graded || myGrade ? `Edit (${myGrade?.totalScore ?? totalScore})` : "Grade"}
           </button>
         </td>
+        {isAdmin && (
+          <td className="px-3 py-2">
+            <button onClick={() => onDelete(post.id)}
+              className="text-red-500 hover:text-red-700 font-bold text-xs px-2 py-1 rounded hover:bg-red-50 transition-colors">
+              Delete
+            </button>
+          </td>
+        )}
+      </tr>
+      {showGrade && (
+        <tr className="bg-indigo-50/60 border-b border-indigo-100">
+          <td colSpan={isAdmin ? 8 : 7} className="px-4 py-3">
+            <div className="flex flex-wrap gap-4 items-end">
+              {criteria.map((c) => (
+                <div key={c.name} className="space-y-1">
+                  <span className="text-xs font-bold text-slate-700">{c.name} (max {c.maxScore})</span>
+                  <div className="flex gap-1">
+                    {Array.from({ length: c.maxScore }, (_, i) => i + 1).map((val) => (
+                      <button
+                        key={val}
+                        onClick={() => setScores({ ...scores, [c.name]: val })}
+                        className={`w-7 h-7 rounded text-xs font-bold transition-all ${
+                          val <= (scores[c.name] || 0)
+                            ? "bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-sm"
+                            : "bg-white border border-slate-200 hover:bg-slate-100 text-slate-600"
+                        }`}
+                      >
+                        {val}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              <div className="flex items-end gap-2">
+                <span className="text-sm font-extrabold text-indigo-700">Total: {totalScore}</span>
+                <Button
+                  size="sm"
+                  onClick={handleGrade}
+                  disabled={submitting}
+                  className="bg-gradient-to-r from-indigo-700 to-blue-700 text-white font-bold hover:opacity-90"
+                >
+                  {submitting ? "..." : "Submit Grade"}
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setShowGrade(false)} className="font-bold">
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </td>
+        </tr>
       )}
-    </tr>
+    </>
   );
 }

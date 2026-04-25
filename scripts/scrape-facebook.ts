@@ -213,13 +213,30 @@ export async function scrape(opts: ScrapeOptions): Promise<ScrapedPost[]> {
       const postLinkEl = el.querySelector('a[href*="/posts/"], a[href*="/groups/"][href*="?id="]');
       const postUrl = postLinkEl ? postLinkEl.getAttribute("href")?.split("?")[0] || null : null;
 
+      // Try multiple strategies to find author name
       const authorEl =
-        el.querySelector("h2 a, h3 a, strong a, h4 a") ||
+        el.querySelector("h2 a, h3 a, h4 a") ||
         el.querySelector('a[role="link"] strong')?.closest("a") ||
+        el.querySelector('strong a') ||
         el.querySelector('a[role="link"]');
-      const authorName = authorEl?.textContent?.trim() || "Unknown";
+
+      // Also try finding author from profile links (exclude group/post links)
+      const allLinks = Array.from(el.querySelectorAll('a[href]'));
+      const profileLink = allLinks.find((a) => {
+        const href = a.getAttribute("href") || "";
+        return (
+          (href.includes("/user/") || href.includes("profile.php") ||
+          (href.startsWith("https://www.facebook.com/") && !href.includes("/groups/") && !href.includes("/posts/") && !href.includes("/events/"))) &&
+          a.textContent?.trim() && a.textContent.trim().length > 1
+        );
+      });
+
+      const authorName =
+        authorEl?.textContent?.trim() ||
+        profileLink?.textContent?.trim() ||
+        "Unknown";
       const authorUrl =
-        authorEl?.getAttribute("href")?.split("?")[0] || null;
+        (authorEl || profileLink)?.getAttribute("href")?.split("?")[0] || null;
 
       const imgEl = el.querySelector(
         'img[src*="scontent"], img[src*="fbcdn"]'

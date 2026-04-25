@@ -29,3 +29,25 @@ export async function GET(
 
   return NextResponse.json(competition);
 }
+
+export async function PATCH(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const body = await req.json();
+  const { hashtag, postingWindowStart, postingWindowEnd, startDate, endDate } = body;
+
+  const competition = await prisma.competition.update({
+    where: { id },
+    data: {
+      ...(hashtag !== undefined && { hashtag }),
+      ...(postingWindowStart !== undefined && { postingWindowStart: postingWindowStart || null }),
+      ...(postingWindowEnd !== undefined && { postingWindowEnd: postingWindowEnd || null }),
+      ...(startDate !== undefined && { startDate: new Date(startDate) }),
+      ...(endDate !== undefined && { endDate: new Date(endDate) }),
+    },
+  });
+
+  return NextResponse.json(competition);
+}
