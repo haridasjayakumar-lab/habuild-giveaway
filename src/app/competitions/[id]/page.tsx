@@ -413,9 +413,7 @@ function PostRow({
 }) {
   const [remarks, setRemarks] = useState(post.remarks || "");
   const [authorName, setAuthorName] = useState(post.authorName || "");
-  const [editingAuthor, setEditingAuthor] = useState(false);
   const [likesCount, setLikesCount] = useState(post.likesCount);
-  const [editingLikes, setEditingLikes] = useState(false);
   const [showGrade, setShowGrade] = useState(false);
   const [scores, setScores] = useState<GradeScores>(() => {
     const initial: GradeScores = {};
@@ -515,27 +513,14 @@ function PostRow({
       <tr className="border-b border-slate-100 hover:bg-slate-50 align-top">
         <td className="px-3 py-2 font-bold text-indigo-700">{index + 1}</td>
         <td className="px-3 py-2 font-bold text-slate-800">
-          {editingAuthor ? (
-            <input
-              type="text"
-              value={authorName}
-              onChange={(e) => setAuthorName(e.target.value)}
-              onBlur={() => {
-                setEditingAuthor(false);
-                onAuthorName(post.id, authorName);
-              }}
-              autoFocus
-              className="border border-indigo-300 rounded px-1.5 py-0.5 text-xs font-bold w-full focus:outline-none focus:ring-1 focus:ring-indigo-400"
-            />
-          ) : (
-            <span
-              onClick={() => setEditingAuthor(true)}
-              title="Click to edit name"
-              className="cursor-pointer hover:text-indigo-600 hover:underline"
-            >
-              {authorName || <span className="text-slate-400 italic">Unknown</span>}
-            </span>
-          )}
+          <input
+            type="text"
+            value={authorName}
+            onChange={(e) => setAuthorName(e.target.value)}
+            onBlur={() => onAuthorName(post.id, authorName)}
+            placeholder="Unknown"
+            className="font-bold text-slate-800 w-full bg-transparent border-0 border-b border-transparent focus:border-indigo-400 focus:outline-none focus:bg-indigo-50 rounded px-1 py-0.5 text-sm transition-colors"
+          />
         </td>
         <td className="px-3 py-2 text-slate-700 max-w-xs">
           <p className="line-clamp-3 font-medium">{post.content}</p>
@@ -547,29 +532,15 @@ function PostRow({
           )}
         </td>
         <td className="px-3 py-2">
-          {editingLikes ? (
-            <input
-              type="number"
-              min={0}
-              value={likesCount}
-              onChange={(e) => setLikesCount(parseInt(e.target.value) || 0)}
-              onBlur={() => {
-                setEditingLikes(false);
-                onLikesCount(post.id, likesCount);
-              }}
-              autoFocus
-              className="border border-indigo-300 rounded px-1.5 py-0.5 text-sm font-bold w-20 focus:outline-none focus:ring-1 focus:ring-indigo-400"
-            />
-          ) : (
-            <span
-              onClick={() => setEditingLikes(true)}
-              title="Click to edit"
-              className="text-sm font-extrabold text-blue-700 cursor-pointer hover:underline"
-            >
-              {likesCount}
-            </span>
-          )}
-          <span className="text-xs text-slate-400 ml-0.5">likes</span>
+          <input
+            type="number"
+            min={0}
+            value={likesCount}
+            onChange={(e) => setLikesCount(parseInt(e.target.value) || 0)}
+            onBlur={() => onLikesCount(post.id, likesCount)}
+            className="font-extrabold text-blue-700 w-16 bg-transparent border-0 border-b border-transparent focus:border-indigo-400 focus:outline-none focus:bg-indigo-50 rounded px-1 py-0.5 text-sm transition-colors"
+          />
+          <span className="text-xs text-slate-400">likes</span>
         </td>
         <td className="px-3 py-2">
           {post.grades.length === 0 ? (
