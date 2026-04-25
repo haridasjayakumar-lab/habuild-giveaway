@@ -410,7 +410,6 @@ function PostRow({
   onRemarks: (id: string, remarks: string) => void;
   onAuthorName: (id: string, authorName: string) => void;
   onLikesCount: (id: string, likesCount: number) => void;
-  onLikesCount: (id: string, likesCount: number) => void;
   onGraded: () => void;
 }) {
   const [remarks, setRemarks] = useState(post.remarks || "");
