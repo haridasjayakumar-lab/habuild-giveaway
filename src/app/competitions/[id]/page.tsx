@@ -397,6 +397,7 @@ function PostRow({
   onDelete,
   onRemarks,
   onAuthorName,
+  onLikesCount,
   onGraded,
 }: {
   post: Post;
@@ -408,6 +409,7 @@ function PostRow({
   onDelete: (id: string) => void;
   onRemarks: (id: string, remarks: string) => void;
   onAuthorName: (id: string, authorName: string) => void;
+  onLikesCount: (id: string, likesCount: number) => void;
   onLikesCount: (id: string, likesCount: number) => void;
   onGraded: () => void;
 }) {
