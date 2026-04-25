@@ -412,9 +412,10 @@ function PostRow({
     return initial;
   });
   const [submitting, setSubmitting] = useState(false);
-  const [graded, setGraded] = useState(false);
+  const [unlocking, setUnlocking] = useState(false);
 
   const myGrade = post.grades.find((g) => g.judge.name === judgeName.trim());
+  const isLocked = !!myGrade;
 
   const handleGrade = async () => {
     if (!judgeName.trim()) {
@@ -434,7 +435,6 @@ function PostRow({
         }),
       });
       if (res.ok) {
-        setGraded(true);
         setShowGrade(false);
         onGraded();
       } else {
@@ -442,6 +442,18 @@ function PostRow({
       }
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleUnlock = async () => {
+    if (!myGrade) return;
+    if (!confirm(`Remove ${judgeName}'s grade for this post? They will be able to re-grade it.`)) return;
+    setUnlocking(true);
+    try {
+      await fetch(`/api/grades/${myGrade.id}`, { method: "DELETE" });
+      onGraded();
+    } finally {
+      setUnlocking(false);
     }
   };
 
@@ -475,6 +487,19 @@ function PostRow({
                   <Badge variant="secondary" className="text-xs bg-emerald-100 text-emerald-800 font-bold px-1">
                     {g.totalScore}
                   </Badge>
+                  {isAdmin && (
+                    <button
+                      onClick={async () => {
+                        if (!confirm(`Remove ${g.judge.name}'s grade?`)) return;
+                        await fetch(`/api/grades/${g.id}`, { method: "DELETE" });
+                        onGraded();
+                      }}
+                      title="Unlock (remove this grade)"
+                      className="text-slate-400 hover:text-red-500 text-xs font-bold ml-0.5 leading-none"
+                    >
+                      ×
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -491,16 +516,30 @@ function PostRow({
           />
         </td>
         <td className="px-3 py-2">
-          <button
-            onClick={() => setShowGrade(!showGrade)}
-            className={`text-xs font-bold px-2 py-1 rounded transition-colors ${
-              graded || myGrade
-                ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
-                : "bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
-            }`}
-          >
-            {graded || myGrade ? `Edit (${myGrade?.totalScore ?? totalScore})` : "Grade"}
-          </button>
+          {isLocked ? (
+            <div className="flex items-center gap-1">
+              <span className="text-xs font-bold bg-emerald-100 text-emerald-700 px-2 py-1 rounded flex items-center gap-1">
+                Graded: {myGrade.totalScore}
+              </span>
+              {isAdmin && (
+                <button
+                  onClick={handleUnlock}
+                  disabled={unlocking}
+                  title="Admin: remove this grade so judge can re-grade"
+                  className="text-xs font-bold text-amber-600 hover:text-amber-800 px-1 py-1 rounded hover:bg-amber-50 transition-colors"
+                >
+                  Unlock
+                </button>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowGrade(!showGrade)}
+              className="text-xs font-bold px-2 py-1 rounded transition-colors bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
+            >
+              {showGrade ? "Cancel" : "Grade"}
+            </button>
+          )}
         </td>
         {isAdmin && (
           <td className="px-3 py-2">
@@ -511,7 +550,7 @@ function PostRow({
           </td>
         )}
       </tr>
-      {showGrade && (
+      {showGrade && !isLocked && (
         <tr className="bg-indigo-50/60 border-b border-indigo-100">
           <td colSpan={isAdmin ? 8 : 7} className="px-4 py-3">
             <div className="flex flex-wrap gap-4 items-end">
