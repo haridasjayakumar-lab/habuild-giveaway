@@ -252,10 +252,16 @@ export default function CompetitionDetail({
               <div>
                 <Label className="font-bold">Posting Window Start (IST)</Label>
                 <Input type="time" value={editWindowStart} onChange={(e) => setEditWindowStart(e.target.value)} />
+                {editWindowStart && (
+                  <button type="button" onClick={() => setEditWindowStart("")} className="text-xs text-red-500 hover:underline mt-1">Clear</button>
+                )}
               </div>
               <div>
                 <Label className="font-bold">Posting Window End (IST)</Label>
                 <Input type="time" value={editWindowEnd} onChange={(e) => setEditWindowEnd(e.target.value)} />
+                {editWindowEnd && (
+                  <button type="button" onClick={() => setEditWindowEnd("")} className="text-xs text-red-500 hover:underline mt-1">Clear</button>
+                )}
               </div>
               <div>
                 <Label className="font-bold">Start Date</Label>

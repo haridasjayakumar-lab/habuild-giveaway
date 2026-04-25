@@ -119,6 +119,9 @@ export default function NewCompetition() {
                   value={postingWindowStart}
                   onChange={(e) => setPostingWindowStart(e.target.value)}
                 />
+                {postingWindowStart && (
+                  <button type="button" onClick={() => setPostingWindowStart("")} className="text-xs text-red-500 hover:underline mt-1">Clear</button>
+                )}
               </div>
               <div>
                 <Label htmlFor="postingWindowEnd">Posting Window End (IST)</Label>
@@ -128,6 +131,9 @@ export default function NewCompetition() {
                   value={postingWindowEnd}
                   onChange={(e) => setPostingWindowEnd(e.target.value)}
                 />
+                {postingWindowEnd && (
+                  <button type="button" onClick={() => setPostingWindowEnd("")} className="text-xs text-red-500 hover:underline mt-1">Clear</button>
+                )}
               </div>
             </div>
             <p className="text-xs text-muted-foreground -mt-2">
