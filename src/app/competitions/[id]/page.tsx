@@ -548,13 +548,14 @@ function PostRow({
             className="font-bold text-slate-800 w-full bg-transparent border-0 border-b border-transparent focus:border-indigo-400 focus:outline-none focus:bg-indigo-50 rounded px-1 py-0.5 text-sm transition-colors"
           />
         </td>
-        <td className="px-3 py-2 text-slate-700 max-w-xs">
-          <p className="line-clamp-3 font-medium">{post.content}</p>
-          {post.postUrl && (
+        <td className="px-3 py-2 text-slate-700">
+          {post.postUrl ? (
             <a href={post.postUrl} target="_blank" rel="noopener noreferrer"
-              className="text-xs font-bold text-indigo-600 hover:underline mt-1 block">
+              className="text-sm font-bold text-indigo-600 hover:underline">
               View on Facebook →
             </a>
+          ) : (
+            <p className="line-clamp-2 text-xs font-medium text-slate-500">{post.content}</p>
           )}
         </td>
         <td className="px-3 py-2">
