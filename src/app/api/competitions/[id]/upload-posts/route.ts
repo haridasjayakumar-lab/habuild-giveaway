@@ -38,24 +38,28 @@ export async function POST(
   let updated = 0;
 
   for (const post of posts) {
-    const existing = await prisma.post.findFirst({
-      where: {
-        competitionId: id,
-        authorName: post.authorName,
-        content: { startsWith: post.content.substring(0, 100) },
-      },
-    });
-
-    const contentKey = `${post.authorName}::${post.content.substring(0, 100)}`;
     const createdTime = post.createdTime ? new Date(post.createdTime) : new Date();
 
+    // Deduplicate by postUrl first (for link-added posts), then by authorName+content
+    const existing = post.postUrl
+      ? await prisma.post.findFirst({ where: { competitionId: id, postUrl: post.postUrl } })
+      : await prisma.post.findFirst({
+          where: {
+            competitionId: id,
+            authorName: post.authorName,
+            content: { startsWith: post.content.substring(0, 100) },
+          },
+        });
+
+    const fbPostId = post.postUrl || `${post.authorName}::${post.content.substring(0, 100)}`;
+
     if (existing) {
+      // Don't overwrite authorName/likes if admin has already edited them
       await prisma.post.update({
         where: { id: existing.id },
         data: {
           likesCount: post.likesCount ?? existing.likesCount,
           commentsCount: post.commentsCount ?? existing.commentsCount,
-          content: post.content,
           imageUrl: post.imageUrl ?? existing.imageUrl,
           postUrl: post.postUrl ?? existing.postUrl,
         },
@@ -64,7 +68,7 @@ export async function POST(
     } else {
       await prisma.post.create({
         data: {
-          fbPostId: contentKey,
+          fbPostId,
           authorName: post.authorName,
           authorProfileUrl: post.authorProfileUrl ?? null,
           content: post.content,

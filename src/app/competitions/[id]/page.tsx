@@ -358,8 +358,8 @@ export default function CompetitionDetail({
         </div>
       )}
 
-      {/* Add post by link */}
-      <div className="mb-4 p-3 bg-green-50 rounded-xl border border-green-200 flex items-center gap-3 flex-wrap">
+      {/* Add post by link — admin only */}
+      {isAdmin && <div className="mb-4 p-3 bg-green-50 rounded-xl border border-green-200 flex items-center gap-3 flex-wrap">
         <Label className="font-bold whitespace-nowrap text-green-800">Add Post by Link:</Label>
         <input
           type="url"
@@ -377,7 +377,7 @@ export default function CompetitionDetail({
         >
           {addingLink ? "Adding..." : "Add Post"}
         </Button>
-      </div>
+      </div>}
 
       {/* Judge name input */}
       <div className="mb-4 p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center gap-3 flex-wrap">
