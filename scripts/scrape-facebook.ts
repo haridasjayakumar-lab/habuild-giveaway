@@ -316,7 +316,7 @@ export async function scrape(opts: ScrapeOptions): Promise<ScrapedPost[]> {
       if (!hasExactHashtag && !hasAlphaMatch && !hasAllWords) continue;
     }
 
-    if (useTimeWindow) {
+    if (useTimeWindow && createdTime) {
       if (!isWithinTimeWindow(createdTime, opts.postingWindowStart!, opts.postingWindowEnd!)) continue;
     }
 
