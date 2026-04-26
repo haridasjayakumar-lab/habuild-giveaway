@@ -50,7 +50,8 @@ async function main() {
         hashtag: competition.hashtag && competition.hashtag.replace("#", "").trim() ? competition.hashtag : undefined,
         startDate: new Date(competition.startDate),
         endDate: new Date(competition.endDate),
-        scrollCount: 15,
+        scrollCount: 50,
+        cookiesPath: process.env.FB_COOKIES_PATH || undefined,
         postingWindowStart: competition.postingWindowStart || undefined,
         postingWindowEnd: competition.postingWindowEnd || undefined,
       });

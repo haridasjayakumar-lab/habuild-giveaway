@@ -22,8 +22,12 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install chromium --with-deps
 
+      - name: Write Facebook cookies
+        run: echo '${{ secrets.FB_COOKIES }}' > fb-cookies.json
+
       - name: Scrape and upload posts
         env:
           APP_URL: ${{ secrets.APP_URL }}
           UPLOAD_SECRET: ${{ secrets.UPLOAD_SECRET }}
+          FB_COOKIES_PATH: fb-cookies.json
         run: npx tsx scripts/auto-scrape.ts
