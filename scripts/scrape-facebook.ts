@@ -63,8 +63,9 @@ function parseReactionCount(text: string): number {
   return parseInt(text.replace(/[^0-9]/g, ""), 10) || 0;
 }
 
-/** Try to extract a rough date from Facebook's relative timestamps */
-function parseFBDate(text: string): Date {
+/** Try to extract a rough date from Facebook's relative timestamps. Returns null if unparseable. */
+function parseFBDate(text: string): Date | null {
+  if (!text) return null;
   const now = new Date();
   text = text.toLowerCase().trim();
 
@@ -77,11 +78,13 @@ function parseFBDate(text: string): Date {
   if (hrMatch) {
     return new Date(now.getTime() - parseInt(hrMatch[1]) * 3600 * 1000);
   }
+  const wkMatch = text.match(/(\d+)\s*w/);
+  if (wkMatch) {
+    return new Date(now.getTime() - parseInt(wkMatch[1]) * 7 * 86400 * 1000);
+  }
   const dayMatch = text.match(/(\d+)\s*d/);
   if (dayMatch) {
-    return new Date(
-      now.getTime() - parseInt(dayMatch[1]) * 86400 * 1000
-    );
+    return new Date(now.getTime() - parseInt(dayMatch[1]) * 86400 * 1000);
   }
   if (text.includes("yesterday")) {
     return new Date(now.getTime() - 86400 * 1000);
@@ -89,7 +92,7 @@ function parseFBDate(text: string): Date {
   const parsed = new Date(text);
   if (!isNaN(parsed.getTime())) return parsed;
 
-  return now;
+  return null; // unparseable — caller will decide what to do
 }
 
 /** Check if a date falls within a time window (IST = UTC+5:30) */
@@ -301,7 +304,8 @@ export async function scrape(opts: ScrapeOptions): Promise<ScrapedPost[]> {
   for (const post of posts) {
     const createdTime = parseFBDate(post.dateText);
 
-    if (createdTime < opts.startDate || createdTime > opts.endDate) continue;
+    // If date is unreadable, include the post anyway
+    if (createdTime && (createdTime < opts.startDate || createdTime > opts.endDate)) continue;
 
     if (useHashtag) {
       const contentLower = post.content.toLowerCase();
@@ -327,7 +331,7 @@ export async function scrape(opts: ScrapeOptions): Promise<ScrapedPost[]> {
       commentsCount: parseReactionCount(
         post.commentsText.replace(/[^0-9km.]/gi, "")
       ),
-      createdTime: createdTime.toISOString(),
+      createdTime: (createdTime ?? new Date()).toISOString(),
     });
   }
 
