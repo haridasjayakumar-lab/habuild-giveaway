@@ -70,6 +70,10 @@ export default function CompetitionDetail({
   const [editEndDate, setEditEndDate] = useState("");
   const [savingSettings, setSavingSettings] = useState(false);
 
+  // Add post by link
+  const [postLink, setPostLink] = useState("");
+  const [addingLink, setAddingLink] = useState(false);
+
   const isAdmin = (session?.user as { role?: string } | undefined)?.role === "admin";
 
   const loadCompetition = useCallback(() => {
@@ -152,6 +156,40 @@ export default function CompetitionDetail({
     if (!confirm("Delete this post?")) return;
     await fetch(`/api/competitions/${id}/posts/${postId}`, { method: "DELETE" });
     loadCompetition();
+  };
+
+  const handleAddPostByLink = async () => {
+    const url = postLink.trim();
+    if (!url) return;
+    setAddingLink(true);
+    setFetchMessage("");
+    try {
+      const res = await fetch(`/api/competitions/${id}/upload-posts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify([{
+          fbPostId: url,
+          authorName: "Unknown",
+          authorProfileUrl: null,
+          content: "",
+          imageUrl: null,
+          postUrl: url,
+          likesCount: 0,
+          commentsCount: 0,
+          createdTime: new Date().toISOString(),
+        }]),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setFetchMessage("Post added. Click the author name to fill in the correct name.");
+        setPostLink("");
+        loadCompetition();
+      } else {
+        setFetchMessage(`Error: ${data.error}`);
+      }
+    } finally {
+      setAddingLink(false);
+    }
   };
 
   const handleSaveSettings = async () => {
@@ -319,6 +357,27 @@ export default function CompetitionDetail({
           {fetchMessage}
         </div>
       )}
+
+      {/* Add post by link */}
+      <div className="mb-4 p-3 bg-green-50 rounded-xl border border-green-200 flex items-center gap-3 flex-wrap">
+        <Label className="font-bold whitespace-nowrap text-green-800">Add Post by Link:</Label>
+        <input
+          type="url"
+          value={postLink}
+          onChange={(e) => setPostLink(e.target.value)}
+          placeholder="Paste Facebook post URL here..."
+          className="border border-green-300 rounded-lg px-3 py-1.5 text-sm font-medium flex-1 min-w-64 focus:outline-none focus:ring-2 focus:ring-green-400"
+          onKeyDown={(e) => e.key === "Enter" && handleAddPostByLink()}
+        />
+        <Button
+          onClick={handleAddPostByLink}
+          disabled={addingLink || !postLink.trim()}
+          className="bg-green-600 hover:bg-green-700 text-white font-bold"
+          size="sm"
+        >
+          {addingLink ? "Adding..." : "Add Post"}
+        </Button>
+      </div>
 
       {/* Judge name input */}
       <div className="mb-4 p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center gap-3 flex-wrap">
