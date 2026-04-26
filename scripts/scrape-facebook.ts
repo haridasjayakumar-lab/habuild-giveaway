@@ -208,10 +208,6 @@ export async function scrape(opts: ScrapeOptions): Promise<ScrapedPost[]> {
       const content = textEl?.textContent?.trim() || "";
       if (!content) return;
 
-      // Only keep top-level posts (must have a post URL — comments don't)
-      const postLinkCheck = el.querySelector('a[href*="/posts/"], a[href*="/groups/"][href*="?id="]');
-      if (!postLinkCheck) return;
-
       const hash = content.substring(0, 100);
       if (seen.has(hash)) return;
       seen.add(hash);
@@ -271,7 +267,7 @@ export async function scrape(opts: ScrapeOptions): Promise<ScrapedPost[]> {
       const dateText = dateEl?.textContent?.trim() || "";
 
       results.push({
-        id: `post_${i}_${Date.now()}`,
+        id: postUrl || `post_${content.substring(0, 60)}`,
         authorName,
         authorUrl,
         postUrl,
