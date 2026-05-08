@@ -69,11 +69,33 @@ export default function CompetitionDetail({
   const [editStartDate, setEditStartDate] = useState("");
   const [editEndDate, setEditEndDate] = useState("");
   const [savingSettings, setSavingSettings] = useState(false);
+  const [editCriteria, setEditCriteria] = useState<Criterion[]>([]);
 
   // Add post by link
   const [postLink, setPostLink] = useState("");
   const [postAuthorName, setPostAuthorName] = useState("");
   const [addingLink, setAddingLink] = useState(false);
+
+  // Search state
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const addEditCriterion = () => {
+    setEditCriteria([...editCriteria, { name: "", maxScore: 10 }]);
+  };
+
+  const removeEditCriterion = (index: number) => {
+    setEditCriteria(editCriteria.filter((_, i) => i !== index));
+  };
+
+  const updateEditCriterion = (
+    index: number,
+    field: keyof Criterion,
+    value: string | number
+  ) => {
+    const updated = [...editCriteria];
+    updated[index] = { ...updated[index], [field]: value };
+    setEditCriteria(updated);
+  };
 
   const isAdmin = (session?.user as { role?: string } | undefined)?.role === "admin";
 
@@ -88,6 +110,7 @@ export default function CompetitionDetail({
         setEditWindowEnd(data.postingWindowEnd || "");
         setEditStartDate(data.startDate ? data.startDate.split("T")[0] : "");
         setEditEndDate(data.endDate ? data.endDate.split("T")[0] : "");
+        setEditCriteria(JSON.parse(data.criteria));
       })
       .finally(() => setLoading(false));
   }, [id]);
@@ -206,6 +229,7 @@ export default function CompetitionDetail({
           postingWindowEnd: editWindowEnd || null,
           startDate: editStartDate,
           endDate: editEndDate,
+          criteria: editCriteria.filter((c) => c.name.trim()),
         }),
       });
       if (res.ok) {
@@ -224,6 +248,10 @@ export default function CompetitionDetail({
   if (!competition) return <p className="text-destructive font-bold">Competition not found.</p>;
 
   const criteria: Criterion[] = JSON.parse(competition.criteria);
+
+  const filteredPosts = competition.posts.filter(post =>
+    post.authorName.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div>
@@ -327,6 +355,46 @@ export default function CompetitionDetail({
                 <Label className="font-bold">End Date</Label>
                 <Input type="date" value={editEndDate} onChange={(e) => setEditEndDate(e.target.value)} />
               </div>
+              <div className="col-span-2">
+                <Label className="font-bold">Grading Criteria</Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Update the judge criteria used to score each post.
+                </p>
+                <div className="space-y-3 mt-3">
+                  {editCriteria.map((criterion, index) => (
+                    <div key={index} className="grid grid-cols-[1fr_110px_40px] gap-2 items-end">
+                      <div>
+                        <Label className="text-xs font-bold">Criterion Name</Label>
+                        <Input
+                          value={criterion.name}
+                          onChange={(e) => updateEditCriterion(index, "name", e.target.value)}
+                          placeholder="Creativity"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs font-bold">Max Score</Label>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={20}
+                          value={criterion.maxScore}
+                          onChange={(e) => updateEditCriterion(index, "maxScore", parseInt(e.target.value) || 1)}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeEditCriterion(index)}
+                        className="h-10 rounded-lg border border-slate-300 text-red-600 font-bold hover:bg-red-50"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <Button type="button" variant="outline" size="sm" onClick={addEditCriterion} className="mt-3 font-bold">
+                  + Add Criterion
+                </Button>
+              </div>
             </div>
             <div className="flex gap-2">
               <Button onClick={handleSaveSettings} disabled={savingSettings} className="bg-amber-600 hover:bg-amber-700 text-white font-bold">
@@ -415,11 +483,27 @@ export default function CompetitionDetail({
 
       {/* Posts table */}
       <div className="mt-2">
-        <h2 className="text-lg font-extrabold mb-3">
-          Posts ({competition.posts.length})
-        </h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-extrabold">
+            Posts ({filteredPosts.length})
+          </h2>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="search" className="font-bold text-sm">Search by name:</Label>
+            <input
+              id="search"
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Filter posts..."
+              className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm w-48 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            />
+            <Button variant="outline" size="sm" className="font-bold" onClick={() => setSearchTerm("")}>
+              Clear
+            </Button>
+          </div>
+        </div>
 
-        {competition.posts.length === 0 ? (
+        {filteredPosts.length === 0 ? (
           <p className="text-muted-foreground font-bold">
             {isAdmin ? 'No posts yet. Click "Get Posts" or "Upload JSON" to load entries.' : "No posts fetched yet."}
           </p>
@@ -439,7 +523,7 @@ export default function CompetitionDetail({
                 </tr>
               </thead>
               <tbody>
-                {competition.posts.map((post, index) => (
+                {filteredPosts.map((post, index) => (
                   <PostRow
                     key={post.id}
                     post={post}

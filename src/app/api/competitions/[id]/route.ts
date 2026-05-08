@@ -36,7 +36,7 @@ export async function PATCH(
 ) {
   const { id } = await params;
   const body = await req.json();
-  const { hashtag, postingWindowStart, postingWindowEnd, startDate, endDate } = body;
+  const { hashtag, postingWindowStart, postingWindowEnd, startDate, endDate, criteria } = body;
 
   const competition = await prisma.competition.update({
     where: { id },
@@ -46,6 +46,7 @@ export async function PATCH(
       ...(postingWindowEnd !== undefined && { postingWindowEnd: postingWindowEnd || null }),
       ...(startDate !== undefined && { startDate: new Date(startDate) }),
       ...(endDate !== undefined && { endDate: new Date(endDate) }),
+      ...(criteria !== undefined && { criteria: JSON.stringify(criteria) }),
     },
   });
 

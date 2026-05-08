@@ -40,6 +40,7 @@ export async function GET(
           authorName: post.authorName,
           content: post.content.substring(0, 200),
           imageUrl: post.imageUrl,
+          postUrl: post.postUrl,
           likesCount: post.likesCount,
           commentsCount: post.commentsCount,
           avgScores: {} as Record<string, number>,
@@ -70,6 +71,7 @@ export async function GET(
         authorName: post.authorName,
         content: post.content.substring(0, 200),
         imageUrl: post.imageUrl,
+        postUrl: post.postUrl,
         likesCount: post.likesCount,
         commentsCount: post.commentsCount,
         avgScores,
@@ -79,7 +81,7 @@ export async function GET(
       };
     })
     .sort((a, b) => b.totalAvgScore - a.totalAvgScore)
-    .slice(0, 10);
+    .slice(0, 50);
 
   return NextResponse.json({ leaderboard, criteria });
 }

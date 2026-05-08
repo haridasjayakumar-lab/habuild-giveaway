@@ -26,6 +26,7 @@ interface LeaderboardEntry {
   authorName: string;
   content: string;
   imageUrl: string | null;
+  postUrl: string | null;
   likesCount: number;
   commentsCount: number;
   avgScores: Record<string, number>;
@@ -94,7 +95,7 @@ export default function LeaderboardPage({
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-extrabold font-heading text-slate-800">
-          Top 10 Leaderboard
+          Top 50 Leaderboard
         </h1>
         <div className="flex gap-2">
           <Button variant="outline" onClick={exportCSV} className="font-bold border-teal-300 text-teal-700 hover:bg-teal-50">
@@ -135,6 +136,9 @@ export default function LeaderboardPage({
                     </TableHead>
                     <TableHead className="text-center font-extrabold text-teal-700">
                       Judges
+                    </TableHead>
+                    <TableHead className="text-center font-extrabold text-slate-700">
+                      Post Link
                     </TableHead>
                   </TableRow>
                 </TableHeader>
@@ -179,6 +183,20 @@ export default function LeaderboardPage({
                       </TableCell>
                       <TableCell className="text-center font-bold text-teal-700">
                         {entry.gradeCount}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {entry.postUrl ? (
+                          <a
+                            href={entry.postUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 font-bold underline text-sm"
+                          >
+                            View Post
+                          </a>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">—</span>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
